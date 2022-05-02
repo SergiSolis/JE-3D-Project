@@ -11,6 +11,7 @@
 
 //some globals
 Mesh* mesh = NULL;
+Mesh* mesh2 = NULL;
 Texture* texture = NULL;
 Shader* shader = NULL;
 Animation* anim = NULL;
@@ -44,12 +45,11 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,10000.f); //set the projection, we want to be perspective
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
-	texture = new Texture();
- 	texture->load("data/texture.tga");
+	texture = Texture::Get("data/texture.tga");
 
 	// example of loading Mesh from Mesh Manager
 	mesh = Mesh::Get("data/box.ASE");
-
+	mesh2 = Mesh::Get("data/sphere.obj");
 	// example of shader loading using the shaders manager
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
@@ -78,6 +78,11 @@ void Game::render(void)
 	Matrix44 m;
 	m.rotate(angle*DEG2RAD, Vector3(0, 1, 0));
 
+	Matrix44 m2;
+	m2.translate(150,0,0);
+	m2.rotate(angle * DEG2RAD, Vector3(0, 1, 0));
+	m2.scale(50, 50, 50);
+
 	if(shader)
 	{
 		//enable shader
@@ -93,6 +98,8 @@ void Game::render(void)
 		//do the draw call
 		mesh->render( GL_TRIANGLES );
 
+		shader->setUniform("u_model", m2);
+		mesh2->render(GL_TRIANGLES);
 		//disable shader
 		shader->disable();
 	}
