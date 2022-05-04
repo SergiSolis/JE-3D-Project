@@ -32,6 +32,13 @@ FBO* fbo = NULL;
 
 Game* Game::instance = NULL;
 
+const int planes_width = 200;
+const int planes_height = 200;
+float padding = 20.0f;
+
+float lod_distance = 200.0f;
+float no_render_distance = 1000.0f;
+
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
 	this->window_width = window_width;
@@ -100,6 +107,62 @@ void renderMesh(Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 
 }
 
+void renderPlanes() {
+	shader->enable();
+
+	Camera* cam = Game::instance->camera;
+
+	//upload uniforms
+	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+	shader->setUniform("u_texture", planeTexture, 0);
+	shader->setUniform("u_time", time);
+
+	for (size_t i = 0; i < planes_width; i++)
+	{
+		for (size_t j = 0; j < planes_height; j++)
+		{
+			Matrix44 model;
+			model.translate(i * padding, 0.0f, j * padding);
+
+			Vector3 planePos = model.getTranslation();
+						
+			Vector3 camPos = cam->eye;
+
+			float dist = planePos.distance(camPos);
+
+			if (dist > no_render_distance) {
+				continue;
+			}
+
+			Mesh* mesh = Mesh::Get("data/spitfire_low.ASE");
+
+			if (dist < lod_distance)
+			{
+				mesh = Mesh::Get("data/spitfire.ASE");
+			}
+
+			//CALCULAR AABB CUANDO ALGO SE MUEVE (BOOL) - Optimizando Render 2 - 01:28
+			BoundingBox worldAABB = transformBoundingBox(model, mesh->box);
+			if (!cam->testBoxInFrustum(worldAABB.center, worldAABB.halfsize)) {
+				continue;
+			}
+
+			/*
+			if (!cam->testSphereInFrustum(planePos, mesh->radius)) {
+				continue;
+			}
+			*/
+
+			shader->setUniform("u_model", model);
+			//do the draw call
+			mesh->render(GL_TRIANGLES);
+		}
+	}
+	//disable shader
+	shader->disable();
+}
+
 void renderIslands() {
 	if (shader)
 	{
@@ -157,7 +220,6 @@ void Game::render(void)
 		Vector3 up = planeModel.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
 
 		camera->lookAt(eye, center, up);
-	
 	}
 
 	Matrix44 islandModel;
@@ -165,6 +227,8 @@ void Game::render(void)
 	renderMesh(planeModel, planeMesh, planeTexture, shader, camera);
 	renderMesh(bombModel, bombMesh, bombTexture, shader, camera);
 	
+	renderPlanes();
+
 	//renderIslands();
 
 	//Draw the floor grid
