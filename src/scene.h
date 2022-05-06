@@ -18,8 +18,10 @@ public:
     virtual ~Entity(); //destructor
 
     //some attributes 
-    std::string name;
     Matrix44 model;
+    Matrix44 global_model;
+    BoundingBox aabb;
+    std::string name;
 
     //methods overwritten by derived classes 
     virtual void render();

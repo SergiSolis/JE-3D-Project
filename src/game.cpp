@@ -39,6 +39,39 @@ float padding = 20.0f;
 float lod_distance = 200.0f;
 float no_render_distance = 1000.0f;
 
+class Prop{
+public:
+	int id;
+	Mesh* mesh;
+	Texture* texture;
+};
+
+Prop props[20];
+
+class Base
+{
+public:
+	int a;
+	virtual void Foo() {};
+};
+
+class Child : public Base{
+public:
+	void Foo() override {};
+};
+
+
+class Entity {
+public:
+
+	//some attributes 
+	Matrix44 model;
+	Mesh* mesh;
+	Texture* texture;
+
+};
+std::vector<Entity*> entities;
+
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
 	this->window_width = window_width;
@@ -52,6 +85,9 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	time = 0.0f;
 	elapsed_time = 0.0f;
 	mouse_locked = false;
+
+	std::cout << sizeof(Base) << std::endl;
+	std::cout << sizeof(Child) << std::endl;
 
 	//OpenGL flags
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
@@ -194,6 +230,28 @@ void renderIslands() {
 	}
 }
 
+void addEntityInFront(Camera* cam) {
+
+	Vector2 mouse = Input::mouse_position;
+
+	Game* game = Game::instance;
+
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y,game->window_width, game->window_height);
+	Vector3 rayOrigin = cam->eye;
+	
+
+	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
+	Matrix44 model;
+	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
+	model.scale(3.0f, 3.0f, 3.0f);
+	Entity* entity = new Entity();
+	entity->model = model;
+	entity->mesh = Mesh::Get("data/spitfire.ASE");
+	entity->texture = Texture::Get("data/spitfire_color_spec.tga");
+	entities.push_back(entity);
+}
+
+
 //what to do when the image has to be draw
 void Game::render(void)
 {
@@ -228,6 +286,12 @@ void Game::render(void)
 	renderMesh(bombModel, bombMesh, bombTexture, shader, camera);
 	
 	renderPlanes();
+
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		Entity* entity = entities[i];
+		renderMesh(entity->model, entity->mesh, entity->texture, shader, camera);
+	}
 
 	//renderIslands();
 
@@ -310,6 +374,10 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 	{
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
+			//#ifdef EDITOR
+		case SDLK_2: addEntityInFront(camera); break;
+			//#endif // EDITOR
+
 	}
 }
 
