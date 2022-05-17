@@ -71,6 +71,7 @@ public:
 
 };
 std::vector<Entity*> entities;
+std::vector<Vector3> points;
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -120,7 +121,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
-void renderMesh(Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam) {
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam) {
 
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
 	if (!a_shader) return;
@@ -131,12 +132,15 @@ void renderMesh(Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, C
 	//upload uniforms
 	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
 	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
-	a_shader->setUniform("u_texture", tex, 0);
+	if (tex != NULL)
+	{
+		a_shader->setUniform("u_texture", tex, 0);
+	}
 	a_shader->setUniform("u_time", time);
 
 	a_shader->setUniform("u_model", model);
 	//do the draw call
-	a_mesh->render(GL_TRIANGLES);
+	a_mesh->render(primitive);
 
 	//disable shader
 	a_shader->disable();
@@ -230,7 +234,7 @@ void renderIslands() {
 	}
 }
 
-void addEntityInFront(Camera* cam) {
+void addEntityInFront(Camera* cam, const char* meshName, const char* textName) {
 
 	Vector2 mouse = Input::mouse_position;
 
@@ -246,9 +250,31 @@ void addEntityInFront(Camera* cam) {
 	model.scale(3.0f, 3.0f, 3.0f);
 	Entity* entity = new Entity();
 	entity->model = model;
-	entity->mesh = Mesh::Get("data/spitfire.ASE");
-	entity->texture = Texture::Get("data/spitfire_color_spec.tga");
+	entity->mesh = Mesh::Get(meshName);
+	entity->texture = Texture::Get(textName);
 	entities.push_back(entity);
+}
+
+void rayPickCheck(Camera* cam) {
+
+	Vector2 mouse = Input::mouse_position;
+
+	Game* game = Game::instance;
+
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, game->window_width, game->window_height);
+	Vector3 rayOrigin = cam->eye;
+
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		Entity* entity = entities[i];
+		Vector3 pos;
+		Vector3 normal;
+		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
+		{
+			std::cout << "col" << std::endl;
+			points.push_back(pos);
+		}
+	}
 }
 
 
@@ -281,18 +307,22 @@ void Game::render(void)
 	}
 
 	Matrix44 islandModel;
-	renderMesh(islandModel, mesh, texture, shader, camera);
-	renderMesh(planeModel, planeMesh, planeTexture, shader, camera);
-	renderMesh(bombModel, bombMesh, bombTexture, shader, camera);
+	renderMesh(GL_TRIANGLES, islandModel, mesh, texture, shader, camera);
+	renderMesh(GL_TRIANGLES, planeModel, planeMesh, planeTexture, shader, camera);
+	renderMesh(GL_TRIANGLES, bombModel, bombMesh, bombTexture, shader, camera);
 	
 	renderPlanes();
 
 	for (size_t i = 0; i < entities.size(); i++)
 	{
 		Entity* entity = entities[i];
-		renderMesh(entity->model, entity->mesh, entity->texture, shader, camera);
+		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, shader, camera);
 	}
 
+	Mesh m;
+	m.vertices = points;
+	renderMesh(GL_POINTS, Matrix44(), &m, NULL, Shader::Get("data/shaders/basic.vs", "data/shaders/flat.fs"), camera);
+	glPointSize(1.0f);
 	//renderIslands();
 
 	//Draw the floor grid
@@ -375,7 +405,8 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
 			//#ifdef EDITOR
-		case SDLK_2: addEntityInFront(camera); break;
+		case SDLK_2: addEntityInFront(camera,"data/spitfire.ASE" , "data/spitfire_color_spec.tga"); break;
+		case SDLK_3: rayPickCheck(camera); break;
 			//#endif // EDITOR
 
 	}
