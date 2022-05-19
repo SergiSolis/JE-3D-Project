@@ -70,8 +70,24 @@ public:
 	Texture* texture;
 
 };
+
+struct sPlayer {
+	Vector3 pos;
+	float jaw;
+	float pitch;
+};
+
+sPlayer player;
+
 std::vector<Entity*> entities;
-std::vector<Vector3> points;
+Entity* selectedEntity = NULL;
+
+bool firstPerson = true;
+
+Mesh* groundMesh;
+Texture* groundTex;
+
+//std::vector<Vector3> points;
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -101,6 +117,10 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	camera->lookAt(Vector3(0.f,50.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,100000.f); //set the projection, we want to be perspective
 
+	groundMesh = new Mesh();
+	groundMesh->createPlane(1000);
+	groundTex = Texture::Get("data/ground.jpg");
+
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
 	
 
@@ -121,7 +141,7 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
-void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam) {
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f) {
 
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
 	if (!a_shader) return;
@@ -137,7 +157,7 @@ void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shad
 		a_shader->setUniform("u_texture", tex, 0);
 	}
 	a_shader->setUniform("u_time", time);
-
+	a_shader->setUniform("u_text_tiling", tiling);
 	a_shader->setUniform("u_model", model);
 	//do the draw call
 	a_mesh->render(primitive);
@@ -145,92 +165,8 @@ void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shad
 	//disable shader
 	a_shader->disable();
 
-}
-
-void renderPlanes() {
-	shader->enable();
-
-	Camera* cam = Game::instance->camera;
-
-	//upload uniforms
-	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-	shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
-	shader->setUniform("u_texture", planeTexture, 0);
-	shader->setUniform("u_time", time);
-
-	for (size_t i = 0; i < planes_width; i++)
-	{
-		for (size_t j = 0; j < planes_height; j++)
-		{
-			Matrix44 model;
-			model.translate(i * padding, 0.0f, j * padding);
-
-			Vector3 planePos = model.getTranslation();
-						
-			Vector3 camPos = cam->eye;
-
-			float dist = planePos.distance(camPos);
-
-			if (dist > no_render_distance) {
-				continue;
-			}
-
-			Mesh* mesh = Mesh::Get("data/spitfire_low.ASE");
-
-			if (dist < lod_distance)
-			{
-				mesh = Mesh::Get("data/spitfire.ASE");
-			}
-
-			//CALCULAR AABB CUANDO ALGO SE MUEVE (BOOL) - Optimizando Render 2 - 01:28
-			BoundingBox worldAABB = transformBoundingBox(model, mesh->box);
-			if (!cam->testBoxInFrustum(worldAABB.center, worldAABB.halfsize)) {
-				continue;
-			}
-
-			/*
-			if (!cam->testSphereInFrustum(planePos, mesh->radius)) {
-				continue;
-			}
-			*/
-
-			shader->setUniform("u_model", model);
-			//do the draw call
-			mesh->render(GL_TRIANGLES);
-		}
-	}
-	//disable shader
-	shader->disable();
-}
-
-void renderIslands() {
-	if (shader)
-	{
-		//enable shader
-		shader->enable();
-
-		//upload uniforms
-		shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-		shader->setUniform("u_viewprojection", Game::instance->camera->viewprojection_matrix);
-		shader->setUniform("u_texture", texture, 0);
-		shader->setUniform("u_time", time);
-
-		Matrix44 m;
-		for (size_t i = 0; i < 10; i++)
-		{
-			for (size_t j = 0; j < 10; j++)
-			{
-				//create model matrix for island
-				Vector3 size = mesh->box.halfsize * 2;
-				m.setTranslation(size.x * i, 0.0f, size.z * j);
-				shader->setUniform("u_model", m);
-				//do the draw call
-				mesh->render(GL_TRIANGLES);
-			}
-		}
-
-		//disable shader
-		shader->disable();
+	if (!cameraLocked) {
+		a_mesh->renderBounding(model);
 	}
 }
 
@@ -255,7 +191,7 @@ void addEntityInFront(Camera* cam, const char* meshName, const char* textName) {
 	entities.push_back(entity);
 }
 
-void rayPickCheck(Camera* cam) {
+void rayPick(Camera* cam) {
 
 	Vector2 mouse = Input::mouse_position;
 
@@ -272,11 +208,21 @@ void rayPickCheck(Camera* cam) {
 		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
 		{
 			std::cout << "col" << std::endl;
-			points.push_back(pos);
+			selectedEntity = entity;
+			//points.push_back(pos);
+			break;
 		}
 	}
 }
 
+
+void rotateSelected(float angleDegrees) {
+	if (selectedEntity == NULL) {
+		return;
+	}
+
+	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0,1,0));
+}
 
 //what to do when the image has to be draw
 void Game::render(void)
@@ -287,8 +233,6 @@ void Game::render(void)
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	
-
 	//set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -297,33 +241,49 @@ void Game::render(void)
 	//set the camera as default
 	camera->enable();
 
+	Texture* skyTex = Texture::Get("data/cielo.tga");
+	Mesh* skyMesh = Mesh::Get("data/cielo.ASE");
+	Matrix44 skyModel;
+	skyModel.translate(camera->eye.x, camera->eye.y -10.0f, camera->eye.z);
+	glDisable(GL_DEPTH_TEST);
+	renderMesh(GL_TRIANGLES, skyModel, skyMesh, skyTex, shader, camera);
+	glEnable(GL_DEPTH_TEST);
+
+	Matrix44 playerModel;
+	playerModel.translate(player.pos.x, player.pos.y, player.pos.z);
+	playerModel.rotate(player.jaw * DEG2RAD, Vector3(0, 1, 0));
+
 	if (cameraLocked)
 	{
-		Vector3 eye = planeModel * Vector3(0.0f, 9.0f, 16.0f);
-		Vector3 center = planeModel * Vector3(0.0f, 0.0f, -20.0f);
-		Vector3 up = planeModel.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+		Vector3 eye = playerModel * Vector3(0.0f, 3.0f, 4.0f);
+		Vector3 center = playerModel * Vector3(0.0f, 0.0f, -10.0f);
+		Vector3 up = playerModel.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+
+		if (firstPerson) {
+			Matrix44 camModel = playerModel;
+			camModel.rotate(player.pitch * DEG2RAD, Vector3(1, 0, 0));
+
+			eye = playerModel * Vector3(0.0f, 1.0f, -0.5f);
+			center = eye + camModel.rotateVector(Vector3(0.0f, 0.0f, -1.0f));
+			up = camModel.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+		}
 
 		camera->lookAt(eye, center, up);
 	}
-
-	Matrix44 islandModel;
-	renderMesh(GL_TRIANGLES, islandModel, mesh, texture, shader, camera);
-	renderMesh(GL_TRIANGLES, planeModel, planeMesh, planeTexture, shader, camera);
-	renderMesh(GL_TRIANGLES, bombModel, bombMesh, bombTexture, shader, camera);
 	
-	renderPlanes();
+
+	renderMesh(GL_TRIANGLES, Matrix44(), groundMesh, groundTex, shader, camera, 500.0f);
+
+	Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+	Mesh* playerMesh = Mesh::Get("data/skeleton_back.obj");
+	
+	renderMesh(GL_TRIANGLES, playerModel, playerMesh, playerTex, shader, camera);
 
 	for (size_t i = 0; i < entities.size(); i++)
 	{
 		Entity* entity = entities[i];
 		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, shader, camera);
 	}
-
-	Mesh m;
-	m.vertices = points;
-	renderMesh(GL_POINTS, Matrix44(), &m, NULL, Shader::Get("data/shaders/basic.vs", "data/shaders/flat.fs"), camera);
-	glPointSize(1.0f);
-	//renderIslands();
 
 	//Draw the floor grid
 	drawGrid();
@@ -356,21 +316,75 @@ void Game::update(double seconds_elapsed)
 	//async input to move the camera around
 	if (cameraLocked)
 	{
-		float planeSpeed = 30.0f * elapsed_time;
-		float rotateSpeed = 90.0f * DEG2RAD * elapsed_time;
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) planeModel.translate(0.0f, 0.0f, -planeSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) planeModel.translate(0.0f, 0.0f, planeSpeed);
+		float playerSpeed = 20.0f * elapsed_time;
+		float rotateSpeed = 120.0f * elapsed_time;
 
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) planeModel.rotate(-rotateSpeed, Vector3(0.0f, 1.0f, 0.0f));
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) planeModel.rotate(rotateSpeed, Vector3(0.0f, 1.0f, 0.0f));
-		if (Input::isKeyPressed(SDL_SCANCODE_E)) planeModel.rotate(rotateSpeed, Vector3(0.0f, 0.0f, 1.0f));
-		if (Input::isKeyPressed(SDL_SCANCODE_Q)) planeModel.rotate(-rotateSpeed, Vector3(0.0f, 0.0f, 1.0f));
+
+		
+		if (firstPerson)
+		{
+			player.pitch -= Input::mouse_delta.y * 10.0f * elapsed_time;
+			player.jaw -= Input::mouse_delta.x * 10.0f * elapsed_time;
+			Input::centerMouse();
+			SDL_ShowCursor(false);
+		}
+		else {
+			if (Input::isKeyPressed(SDL_SCANCODE_D)) player.jaw += rotateSpeed;
+			if (Input::isKeyPressed(SDL_SCANCODE_A)) player.jaw -= rotateSpeed;
+		}
+
+		Matrix44 playerRotation;
+		playerRotation.rotate(player.jaw * DEG2RAD, Vector3(0, 1, 0));
+		Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
+		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+		Vector3 playerVel;
+
+		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel + (forward* playerSpeed);
+		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel - (forward * playerSpeed);
+		if (Input::isKeyPressed(SDL_SCANCODE_Q)) playerVel = playerVel - (right * playerSpeed);
+		if (Input::isKeyPressed(SDL_SCANCODE_E)) playerVel = playerVel + (right * playerSpeed);
+
+
+
+		Vector3 nextPos = player.pos + playerVel;
+
+		//calculamos el centro de la esfera de colisión del player elevandola hasta la cintura
+		Vector3 character_center = nextPos + Vector3(0, 1, 0);
+
+		for (size_t i = 0; i < entities.size(); i++)
+		{
+			Entity* currentEntity = entities[i];
+
+			Vector3 coll;
+			Vector3 collnorm;
+
+			//comprobamos si colisiona el objeto con la esfera (radio 3)
+			if (!currentEntity->mesh->testSphereCollision(currentEntity->model, character_center, 0.5f, coll, collnorm))
+				continue; //si no colisiona, pasamos al siguiente objeto
+
+			//si la esfera está colisionando muevela a su posicion anterior alejandola del objeto
+			Vector3 push_away = normalize(coll - character_center) * elapsed_time;
+			nextPos = player.pos - push_away; //move to previous pos but a little bit further
+
+			//cuidado con la Y, si nuestro juego es 2D la ponemos a 0
+			nextPos.y = 0;
+
+			//reflejamos el vector velocidad para que de la sensacion de que rebota en la pared
+			//velocity = reflect(velocity, collnorm) * 0.95;
+		}
+
+		
+		player.pos = nextPos;
+
+
+		
 		/*
 		if (Input::isKeyPressed(SDL_SCANCODE_UP)) camera->move(Vector3(0.0f, 10.0f, 0.0f) * speed);
 		if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) camera->move(Vector3(0.0f, -10.0f, 0.0f) * speed);
 		*/
 	}
 	else {
+		SDL_ShowCursor(true);
 		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
@@ -405,8 +419,11 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
 			//#ifdef EDITOR
-		case SDLK_2: addEntityInFront(camera,"data/spitfire.ASE" , "data/spitfire_color_spec.tga"); break;
-		case SDLK_3: rayPickCheck(camera); break;
+		case SDLK_2: addEntityInFront(camera,"data/building-antique-china.obj" , "data/color-atlas.png"); break;
+		case SDLK_3: rayPick(camera); break;
+		case SDLK_KP_PLUS: rotateSelected(10.0f); break;
+		case SDLK_KP_MINUS: rotateSelected(-10.0f); break;
+		case SDLK_0: firstPerson = !firstPerson; break;
 			//#endif // EDITOR
 
 	}
