@@ -31,7 +31,7 @@ public:
     Vector3 getPosition();
 };
 
-class EntityMesh : public Entity
+class EntityMeshh : public Entity
 {
 public:
     //Attributes of this class 

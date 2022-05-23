@@ -1,7 +1,7 @@
 #include "scene.h"
 #include <cmath>
 
-void EntityMesh::render()
+void EntityMeshh::render()
 {
 	//get the last camera that was activated
 	Camera* camera = Camera::current;

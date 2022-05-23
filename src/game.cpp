@@ -9,21 +9,15 @@
 
 #include <cmath>
 
+#include "World.h"
+#include "Stage.h"
+
 //some globals
 Mesh* mesh = NULL;
 Texture* texture = NULL;
 Shader* shader = NULL;
 
 bool cameraLocked = true;
-Mesh* planeMesh = NULL;
-Texture* planeTexture = NULL;
-Matrix44 planeModel;
-
-Mesh* bombMesh = NULL;
-Texture* bombTexture = NULL;
-Matrix44 bombModel;
-Matrix44 bombOffset;
-bool bombAttached = true;
 
 Animation* anim = NULL;
 float angle = 0;
@@ -32,55 +26,11 @@ FBO* fbo = NULL;
 
 Game* Game::instance = NULL;
 
-const int planes_width = 200;
-const int planes_height = 200;
-float padding = 20.0f;
-
-float lod_distance = 200.0f;
-float no_render_distance = 1000.0f;
-
-class Prop{
-public:
-	int id;
-	Mesh* mesh;
-	Texture* texture;
-};
-
-Prop props[20];
-
-class Base
-{
-public:
-	int a;
-	virtual void Foo() {};
-};
-
-class Child : public Base{
-public:
-	void Foo() override {};
-};
-
-
-class Entity {
-public:
-
-	//some attributes 
-	Matrix44 model;
-	Mesh* mesh;
-	Texture* texture;
-
-};
-
-struct sPlayer {
-	Vector3 pos;
-	float jaw;
-	float pitch;
-};
 
 sPlayer player;
 
-std::vector<Entity*> entities;
-Entity* selectedEntity = NULL;
+std::vector<EntityMesh*> entities;
+EntityMesh* selectedEntity = NULL;
 
 bool firstPerson = true;
 
@@ -103,14 +53,11 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	elapsed_time = 0.0f;
 	mouse_locked = false;
 
-	std::cout << sizeof(Base) << std::endl;
-	std::cout << sizeof(Child) << std::endl;
-
 	//OpenGL flags
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
 
-	bombOffset.setTranslation(0.0f, -2.0f, 0.0f);
+	world.loadWorld();
 
 	//create our camera
 	camera = new Camera();
@@ -127,12 +74,6 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	// example of loading Mesh from Mesh Manager
 	mesh = Mesh::Get("data/island.ASE");
 	texture = Texture::Get("data/island_color.tga");
-
-	planeMesh = Mesh::Get("data/spitfire.ASE");
-	planeTexture = Texture::Get("data/spitfire_color_spec.tga");
-
-	bombMesh = Mesh::Get("data/torpedo.ASE");
-	bombTexture = Texture::Get("data/torpedo.tga");
 	
 	// example of shader loading using the shaders manager
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
@@ -141,92 +82,11 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
 }
 
-void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f) {
-
-	assert(a_mesh != NULL, "mesh in renderMesh was null");
-	if (!a_shader) return;
-
-	//enable shader
-	a_shader->enable();
-
-	//upload uniforms
-	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
-	if (tex != NULL)
-	{
-		a_shader->setUniform("u_texture", tex, 0);
-	}
-	a_shader->setUniform("u_time", time);
-	a_shader->setUniform("u_text_tiling", tiling);
-	a_shader->setUniform("u_model", model);
-	//do the draw call
-	a_mesh->render(primitive);
-
-	//disable shader
-	a_shader->disable();
-
-	if (!cameraLocked) {
-		a_mesh->renderBounding(model);
-	}
-}
-
-void addEntityInFront(Camera* cam, const char* meshName, const char* textName) {
-
-	Vector2 mouse = Input::mouse_position;
-
-	Game* game = Game::instance;
-
-	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y,game->window_width, game->window_height);
-	Vector3 rayOrigin = cam->eye;
-	
-
-	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
-	Matrix44 model;
-	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
-	model.scale(3.0f, 3.0f, 3.0f);
-	Entity* entity = new Entity();
-	entity->model = model;
-	entity->mesh = Mesh::Get(meshName);
-	entity->texture = Texture::Get(textName);
-	entities.push_back(entity);
-}
-
-void rayPick(Camera* cam) {
-
-	Vector2 mouse = Input::mouse_position;
-
-	Game* game = Game::instance;
-
-	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, game->window_width, game->window_height);
-	Vector3 rayOrigin = cam->eye;
-
-	for (size_t i = 0; i < entities.size(); i++)
-	{
-		Entity* entity = entities[i];
-		Vector3 pos;
-		Vector3 normal;
-		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
-		{
-			std::cout << "col" << std::endl;
-			selectedEntity = entity;
-			//points.push_back(pos);
-			break;
-		}
-	}
-}
-
-
-void rotateSelected(float angleDegrees) {
-	if (selectedEntity == NULL) {
-		return;
-	}
-
-	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0,1,0));
-}
-
 //what to do when the image has to be draw
 void Game::render(void)
 {
+	world.current_stage->render();
+	/*
 	//set the clear color (the background color)
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -281,7 +141,7 @@ void Game::render(void)
 
 	for (size_t i = 0; i < entities.size(); i++)
 	{
-		Entity* entity = entities[i];
+		EntityMesh* entity = entities[i];
 		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, shader, camera);
 	}
 
@@ -293,10 +153,13 @@ void Game::render(void)
 
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(this->window);
+	*/
 }
 
 void Game::update(double seconds_elapsed)
 {
+	world.current_stage->update(seconds_elapsed);
+	/*
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
 
 	//example
@@ -323,8 +186,8 @@ void Game::update(double seconds_elapsed)
 		
 		if (firstPerson)
 		{
-			player.pitch -= Input::mouse_delta.y * 10.0f * elapsed_time;
-			player.jaw -= Input::mouse_delta.x * 10.0f * elapsed_time;
+			player.pitch -= Input::mouse_delta.y * 5.0f * elapsed_time;
+			player.jaw -= Input::mouse_delta.x * 5.0f * elapsed_time;
 			Input::centerMouse();
 			SDL_ShowCursor(false);
 		}
@@ -353,7 +216,7 @@ void Game::update(double seconds_elapsed)
 
 		for (size_t i = 0; i < entities.size(); i++)
 		{
-			Entity* currentEntity = entities[i];
+			EntityMesh* currentEntity = entities[i];
 
 			Vector3 coll;
 			Vector3 collnorm;
@@ -381,7 +244,7 @@ void Game::update(double seconds_elapsed)
 		/*
 		if (Input::isKeyPressed(SDL_SCANCODE_UP)) camera->move(Vector3(0.0f, 10.0f, 0.0f) * speed);
 		if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) camera->move(Vector3(0.0f, -10.0f, 0.0f) * speed);
-		*/
+
 	}
 	else {
 		SDL_ShowCursor(true);
@@ -394,21 +257,10 @@ void Game::update(double seconds_elapsed)
 		if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) camera->move(Vector3(0.0f, -1.0f, 0.0f) * speed);
 	}
 	
-	if (Input::isKeyPressed(SDL_SCANCODE_F)) {
-		bombAttached = !bombAttached;
-	}
-
-	if (bombAttached)
-	{
-		bombModel = bombOffset * planeModel;
-	}
-	else {
-		bombModel.translateGlobal(0.0f, -9.8f * elapsed_time, 0.0f);
-	}
-
 	//to navigate with the mouse fixed in the middle
 	if (mouse_locked)
 		Input::centerMouse();
+	*/
 }
 
 //Keyboard event handler (sync input)
