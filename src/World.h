@@ -2,9 +2,52 @@
 #define WORLD_H
 
 #include "Entity.h"
-#include "Gamemap.h"
 #include "utils.h"
 #include "Stage.h"
+
+enum eCellType : uint8 {
+	SEA,
+	FIELD,
+	WALL,
+	BOX,
+};
+
+struct sCell {
+	eCellType type;
+};
+
+struct sMapHeader {
+	int w; //width of map
+	int h; //height of map
+	unsigned char bytes; //num bytes per cell
+	unsigned char extra[7]; //filling bytes, not used
+};
+
+class GameMap {
+public:
+	int width;
+	int height;
+	sCell* data;
+
+	GameMap() {
+		width = height = 0;
+		data = NULL;
+	}
+	GameMap(int w, int h) {
+		width = w;
+		height = h;
+		data = new sCell[w * h];
+	}
+	sCell& getCell(int x, int y)
+	{
+		return data[x + y * width];
+	}
+};
+
+struct sPropViewData {
+	Mesh* mesh;
+	Texture* texture;
+};
 
 class World {
 public:
@@ -42,8 +85,9 @@ public:
 	endStage* end;
 
 	GameMap* gamemap;
-	const float tileWidth = 4.0f;
-	const float tileHeight = 4.0f;
+	sPropViewData viewDatas[3];
+	const float tileWidth = 2.0f;
+	const float tileHeight = 2.0f;
 
 	//Cielo
 	EntityMesh* sky;
@@ -57,11 +101,6 @@ public:
 	Texture* ground_text;
 	Matrix44 groundModel;
 
-	//Puerta
-	Mesh* doormesh;
-	Texture* doortext;
-	Matrix44 doorModel;
-
 	//Box
 	Mesh* box_mesh;
 	Texture* box_text;
@@ -73,4 +112,5 @@ public:
 
 };
 
+GameMap* loadGameMap(const char* filename);
 #endif

@@ -62,24 +62,6 @@ public:
     void update(float dt);
 };
 
-class EntityMeshStatic : public EntityMesh
-{
-public:
-
-};
-
-class EntityMeshDynamic : public EntityMesh
-{
-public:
-
-};
-
-class EntitySound : public Entity
-{
-public:
-
-};
-
 struct sPlayer {
     Vector3 pos;
     float jaw;
@@ -107,8 +89,9 @@ public:
 
         mesh = new EntityMesh(GL_TRIANGLES, playerModel, playerMesh, playerTex, shader);
 
-        mov.pos.x = 0;
+        mov.pos.x = 10;
         mov.pos.y = 0;
+        mov.pos.z = 10;
         mov.jaw = 0;
 
         firstPerson = true;
@@ -136,5 +119,25 @@ class EntityCamera : public Entity
 public:
 
 };
+
+class EntityMeshStatic : public EntityMesh
+{
+public:
+
+};
+
+class EntityMeshDynamic : public EntityMesh
+{
+public:
+
+};
+
+class EntitySound : public Entity
+{
+public:
+
+};
+
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f);
 
 #endif 

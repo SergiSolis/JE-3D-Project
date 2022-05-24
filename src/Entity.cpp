@@ -57,3 +57,32 @@ void EntityPlayer::checkIsGrounded() {
 		isGrounded = false;
 	}
 }
+
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
+	Game* game = Game::instance;
+	assert(a_mesh != NULL, "mesh in renderMesh was null");
+	if (!a_shader) return;
+
+	//enable shader
+	a_shader->enable();
+
+	//upload uniforms
+	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+	if (tex != NULL)
+	{
+		a_shader->setUniform("u_texture", tex, 0);
+	}
+	a_shader->setUniform("u_time", time);
+	a_shader->setUniform("u_text_tiling", tiling);
+	a_shader->setUniform("u_model", model);
+	//do the draw call
+	a_mesh->render(primitive);
+
+	//disable shader
+	a_shader->disable();
+
+	if (!game->world.cameraLocked) {
+		a_mesh->renderBounding(model);
+	}
+}

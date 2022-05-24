@@ -5,7 +5,6 @@
 #include <cmath>
 #include "animation.h"
 #include "input.h"
-#include "Gamemap.h"
 
 void playStage::render()
 {
@@ -42,11 +41,30 @@ void playStage::render()
 
 	world.ground->model = Matrix44();
 	world.ground->tiling = 500.0f;
-	renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, game->camera, world.ground->tiling);
-	//world.ground->render();
+	//renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, game->camera, world.ground->tiling);
+	world.ground->render();
 	
 	//player->render();
 	renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
+
+
+	for (size_t i = 0; i < world.gamemap->width; i++)
+	{
+		for (size_t j = 0; j < world.gamemap->height; j++)
+		{
+			sCell& cell = world.gamemap->getCell(i, j);
+			int index = (int)cell.type;
+			sPropViewData& prop = world.viewDatas[index];
+			if (index == 0) continue;
+
+			Matrix44 cellModel;
+			cellModel.translate(i * world.tileWidth, 0.0f, j * world.tileHeight);
+			//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
+			EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader);
+			world.static_entities.push_back(entity);
+		}
+	}
+	std::cout << "entities: " << world.static_entities.size() << std::endl;
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
@@ -54,22 +72,8 @@ void playStage::render()
 		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, entity->shader, game->camera);
 		//entity->render();
 	}
-	/*
-	for (size_t i = 0; i < world.gamemap->width; i++)
-	{
-		for (size_t j = 0; j < world.gamemap->height; j++)
-		{
-			sCell& cell = world.gamemap->getCell(i, j);
-			int index = (int)cell.type;
-			sPropViewData& prop = world.gamemap->viewData[index];
-
-
-			Matrix44 cellModel;
-			cellModel.translate(i * world.tileWidth, 0.0f, j * world.tileHeight);
-			renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
-		}
-	}
-	*/
+	
+	
 	//Draw the floor grid
 	drawGrid();
 
@@ -139,11 +143,11 @@ void playStage::update(float seconds_elapsed)
 		}
 		
 		
-		std::cout << "position x: " << player->mov.pos.x << ", y: " << player->mov.pos.y << ", z: " << player->mov.pos.z << std::endl;
-
+		std::cout << "entities: " << world.static_entities.size() << std::endl;
 		Vector3 targetPos = player->mov.pos + playerVel;
-		player->mov.pos = checkCollision(targetPos);
 		
+		player->mov.pos = checkCollision(targetPos);
+			
 	}
 	else
 	{
@@ -163,36 +167,6 @@ void playStage::update(float seconds_elapsed)
 		
 	}
 
-
-}
-
-void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
-	Game* game = Game::instance;
-	assert(a_mesh != NULL, "mesh in renderMesh was null");
-	if (!a_shader) return;
-
-	//enable shader
-	a_shader->enable();
-
-	//upload uniforms
-	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
-	if (tex != NULL)
-	{
-		a_shader->setUniform("u_texture", tex, 0);
-	}
-	a_shader->setUniform("u_time", time);
-	a_shader->setUniform("u_text_tiling", tiling);
-	a_shader->setUniform("u_model", model);
-	//do the draw call
-	a_mesh->render(primitive);
-
-	//disable shader
-	a_shader->disable();
-
-	if (!game->world.cameraLocked) {
-		a_mesh->renderBounding(model);
-	}
 }
 
 void setCamera(Camera *cam, Matrix44 model)
@@ -236,7 +210,7 @@ Vector3 checkCollision(Vector3 target)
 	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
 
 
-	if (game->world.static_entities.size() == 0) {
+	if (world.static_entities.size() == 0) {
 		if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
 		{
 			std::cout << "COLLISION BOTTOM" << std::endl;
@@ -249,7 +223,7 @@ Vector3 checkCollision(Vector3 target)
 		{
 			Vector3 posEnt = game->world.static_entities[i]->model.getTranslation();
 			std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
-			if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 1, coll, collnorm))
+			if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
 			{
 				if (player->mov.pos.y >= coll.y)
 				{
@@ -257,6 +231,7 @@ Vector3 checkCollision(Vector3 target)
 					player->isGrounded = true;
 				}
 				else {
+					std::cout << "COLLISION fromt" << std::endl;
 					pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
 					returned = player->mov.pos - pushAway;
@@ -267,7 +242,7 @@ Vector3 checkCollision(Vector3 target)
 			else {
 				if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
 				{
-					std::cout << "COLLISION BOTTOM" << std::endl;
+					
 					player->isGrounded = true;
 					target.y = coll.y;
 				}
