@@ -47,3 +47,13 @@ void EntityPlayer::render() {
 void EntityPlayer::update(float dt) {
 	mesh->update(dt);
 }
+
+void EntityPlayer::checkIsGrounded() {
+	if (mov.pos.y == 0)
+	{
+		isGrounded = true;
+	}
+	else if (mov.pos.y > 0) {
+		isGrounded = false;
+	}
+}

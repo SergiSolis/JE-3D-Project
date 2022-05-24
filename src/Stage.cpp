@@ -28,14 +28,9 @@ void playStage::render()
 	// set the camera as default
 	game->camera->enable();
 
-
-
-	world.sky->model = Matrix44();
-	world.sky->mesh = Mesh::Get("data/cielo.ASE");
-	world.sky->texture = Texture::Get("data/cielo.tga");
-	world.sky->model.translate(game->camera->eye.x, game->camera->eye.y - 10.0f, game->camera->eye.z);
 	glDisable(GL_DEPTH_TEST);
-	renderMesh(GL_TRIANGLES, world.sky->model, world.sky->mesh, world.sky->texture, world.sky->shader, game->camera);
+	world.skyModel.translate(game->camera->eye.x, game->camera->eye.y - 10.0f, game->camera->eye.z);
+	renderMesh(GL_TRIANGLES, world.skyModel, world.sky->mesh, world.sky->texture, world.sky->shader, game->camera);
 	//world.sky->render();
 	glEnable(GL_DEPTH_TEST);
 
@@ -46,27 +41,35 @@ void playStage::render()
 	setCamera(game->camera, player->model);
 
 	world.ground->model = Matrix44();
-	world.ground->render();
+	world.ground->tiling = 500.0f;
+	renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, game->camera, world.ground->tiling);
+	//world.ground->render();
 	
-	player->render();
+	//player->render();
+	renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
 		EntityMesh* entity = world.static_entities[i];
-		entity->render();
+		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, entity->shader, game->camera);
+		//entity->render();
 	}
-	// m.rotate(game->angle * DEG2RAD, Vector3(0, 1, 0));
+	/*
+	for (size_t i = 0; i < world.gamemap->width; i++)
+	{
+		for (size_t j = 0; j < world.gamemap->height; j++)
+		{
+			sCell& cell = world.gamemap->getCell(i, j);
+			int index = (int)cell.type;
+			sPropViewData& prop = world.gamemap->viewData[index];
 
-	//RenderMesh(game->world.shader, game->world.skybox, game->world.skymodel, game->camera, game->world.tex);
-	//RenderMesh(game->world.shader, game->world.ground_mesh, game->world.groundModel, game->camera, game->world.ground_text);
-	//RenderMesh(game->world.shader, game->world.mainCharacter, game->world.model, game->camera, game->world.texCharacter);
-	
-	// RenderMesh(game->shader, game->escenaMesh, game->escenaModel, game->camera,game->escenaText);
 
-	// RenderMesh(game->shader, game->static_entities[0]->mesh, game->static_entities[0]->model, game->camera, game->static_entities[0]->texture);
-
-	//player->mesh->mesh->renderBounding(game->world.model);
-
+			Matrix44 cellModel;
+			cellModel.translate(i * world.tileWidth, 0.0f, j * world.tileHeight);
+			renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
+		}
+	}
+	*/
 	//Draw the floor grid
 	drawGrid();
 
@@ -89,31 +92,17 @@ void playStage::update(float seconds_elapsed)
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
 
-	// mouse input to rotate the cam
-	if ((Input::mouse_state & SDL_BUTTON_LEFT) || game->mouse_locked) // is left button pressed?
-	{
-		game->camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, -1.0f, 0.0f));
-		game->camera->rotate(Input::mouse_delta.y * 0.005f, game->camera->getLocalVector(Vector3(-1.0f, 0.0f, 0.0f)));
-	}
 	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
-		world.cameraLocked = !world.cameraLocked;
+		player->cameraLocked = !player->cameraLocked;
+		std::cout << "cameraLocked: " << player->cameraLocked << std::endl;
 	}
-	if (!world.cameraLocked)
+	if (player->cameraLocked)
 	{
-		SDL_ShowCursor(true);
-		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) game->camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) game->camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) game->camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) game->camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_UP)) game->camera->move(Vector3(0.0f, 1.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) game->camera->move(Vector3(0.0f, -1.0f, 0.0f) * speed);
-	}
-	else
-	{
-
 		float playerSpeed = 20.0f * seconds_elapsed;
 		float rotateSpeed = 120.0f * seconds_elapsed;
+		float gravity = 9.807f;
+		float jumpHeight = 5.0f;
+		float verticalSpeed;
 
 		if (player->firstPerson)
 		{
@@ -122,7 +111,7 @@ void playStage::update(float seconds_elapsed)
 			Input::centerMouse();
 			SDL_ShowCursor(false);
 		}
-		else{
+		else {
 			if (Input::isKeyPressed(SDL_SCANCODE_D)) player->mov.jaw += rotateSpeed;
 			if (Input::isKeyPressed(SDL_SCANCODE_A)) player->mov.jaw -= rotateSpeed;
 		}
@@ -130,6 +119,7 @@ void playStage::update(float seconds_elapsed)
 		playerRotation.rotate(player->mov.jaw * DEG2RAD, Vector3(0, 1, 0));
 		Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
 		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+		Vector3 jump = playerRotation.rotateVector(Vector3(0, 1, 0));
 		Vector3 playerVel;
 
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel + (forward * playerSpeed);
@@ -137,28 +127,43 @@ void playStage::update(float seconds_elapsed)
 		if (Input::isKeyPressed(SDL_SCANCODE_Q)) playerVel = playerVel - (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_E)) playerVel = playerVel + (right * playerSpeed);
 
-		Vector3 targetPos = player->mov.pos + playerVel;
-		if ((targetPos.x <= 183.0 && targetPos.x >= 3.0 && targetPos.z <= 183.0 && targetPos.z >= 3.0))
-		{
-			player->mov.pos = checkCollision(targetPos);
+		
+		if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded) {
+			player->isGrounded = false;
+			playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
 		}
+
+		if (player->isGrounded == false)
+		{
+			playerVel = playerVel - (jump * gravity * seconds_elapsed);
+		}
+		
+		
+		std::cout << "position x: " << player->mov.pos.x << ", y: " << player->mov.pos.y << ", z: " << player->mov.pos.z << std::endl;
+
+		Vector3 targetPos = player->mov.pos + playerVel;
+		player->mov.pos = checkCollision(targetPos);
+		
+	}
+	else
+	{
+		if ((Input::mouse_state & SDL_BUTTON_LEFT)) //is left button pressed?
+		{
+			game->camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, -1.0f, 0.0f));
+			game->camera->rotate(Input::mouse_delta.y * 0.005f, game->camera->getLocalVector(Vector3(-1.0f, 0.0f, 0.0f)));
+		}
+		SDL_ShowCursor(true);
+		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
+		if (Input::isKeyPressed(SDL_SCANCODE_W)) game->camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_S)) game->camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) game->camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) game->camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_UP)) game->camera->move(Vector3(0.0f, 1.0f, 0.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) game->camera->move(Vector3(0.0f, -1.0f, 0.0f) * speed);
+		
 	}
 
-	// async input to move the camera around
 
-	/*
-	for (size_t i = 0; i < game->dynamic_entities.size(); i++) {
-		checkCollision(dynamic_entities[i],game->static_entities);
-		checkCollision(dynamic_entities[i], game->dynamic_entities);
-	}*/
-
-	//checkCollision();
-
-	if (Input::isKeyPressed(SDL_SCANCODE_C))
-		world.cameraLocked = !world.cameraLocked;
-	// to navigate with the mouse fixed in the middle
-	if (game->mouse_locked)
-		Input::centerMouse();
 }
 
 void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
@@ -196,7 +201,7 @@ void setCamera(Camera *cam, Matrix44 model)
 	World world = game->world;
 	EntityPlayer* player = world.player;
 
-	if (world.cameraLocked)
+	if (player->cameraLocked)
 	{
 		Vector3 eye = model * Vector3(0.0f, 3.0f, 4.0f);
 		Vector3 center = model * Vector3(0.0f, 0.0f, -10.0f);
@@ -227,22 +232,70 @@ Vector3 checkCollision(Vector3 target)
 	Vector3 pushAway;
 	Vector3 returned;
 
-	Vector3 centerCharacter = target + Vector3(0.0, 1.0, 0.0);
+	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
+	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
 
-	// eCellType type = game->map->getCell(x-6, y-6).type;
 
-	for (size_t i = 0; i < game->world.static_entities.size(); i++)
-	{
-
-		if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
+	if (game->world.static_entities.size() == 0) {
+		if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
 		{
-			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
-
-			returned = player->mov.pos - pushAway;
-			returned.y = player->mov.pos.y;
-			return returned;
+			std::cout << "COLLISION BOTTOM" << std::endl;
+			player->isGrounded = true;
+			target.y = coll.y;
 		}
 	}
+	else {
+		for (size_t i = 0; i < game->world.static_entities.size(); i++)
+		{
+			Vector3 posEnt = game->world.static_entities[i]->model.getTranslation();
+			std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
+			if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 1, coll, collnorm))
+			{
+				if (player->mov.pos.y >= coll.y)
+				{
+					target.y = 2.25f;
+					player->isGrounded = true;
+				}
+				else {
+					pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+
+					returned = player->mov.pos - pushAway;
+					returned.y = player->mov.pos.y;
+					return returned;
+				}
+			}
+			else {
+				if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
+				{
+					std::cout << "COLLISION BOTTOM" << std::endl;
+					player->isGrounded = true;
+					target.y = coll.y;
+				}
+				else {
+					player->isGrounded = false;
+				}
+
+			}
+		}
+	}
+
+	return target;
+}
+
+Vector3 checkCollisionBottom(Vector3 target)
+{
+	Game* game = Game::instance;
+	World world = game->world;
+	EntityPlayer* player = world.player;
+
+	Vector3 coll;
+	Vector3 coll2;
+	Vector3 collnorm;
+
+	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
+
+
+
 	return target;
 }
 
@@ -281,8 +334,8 @@ void rayPick(Camera* cam) {
 		Vector3 normal;
 		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
 		{
-			std::cout << "col" << std::endl;
-			//points.push_back(pos);
+			std::cout << "RayPicked: " << entity->tiling << std::endl;
+			world.selectedEntity = entity;
 			break;
 		}
 	}
@@ -290,11 +343,15 @@ void rayPick(Camera* cam) {
 
 
 void rotateSelected(float angleDegrees) {
-	/*
+	Game* game = Game::instance;
+	World world = game->world;
+	EntityMesh* selectedEntity = world.selectedEntity;
+
 	if (selectedEntity == NULL) {
 		return;
 	}
-
+	else {
+		std::cout << "aaaaaa: " << std::endl;
+	}
 	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
-	*/
 }

@@ -55,6 +55,15 @@ void GameMap::setViewData() {
 	//viewData[0].mesh = Mesh::Get("data/export.obj");
 	//viewData[0].texture = Texture::Get("data/export.png");
 
-	viewData[0].mesh = Mesh::Get("data/borde2.obj");
-	viewData[0].texture = Texture::Get("data/borde2.png");
+	viewData[0].mesh = Mesh::Get("data/sea.obj");
+	viewData[0].texture = Texture::Get("data/color-atlas.png");
+
+	viewData[1].mesh = Mesh::Get("data/field.obj");
+	viewData[1].texture = Texture::Get("data/color-atlas.png");
+
+	viewData[2].mesh = Mesh::Get("data/wall.obj");
+	viewData[2].texture = Texture::Get("data/color-atlas.png");
+
+	viewData[3].mesh = Mesh::Get("data/box.obj");
+	viewData[3].texture = Texture::Get("data/color-atlas.png");
 }

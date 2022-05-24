@@ -266,16 +266,20 @@ void Game::update(double seconds_elapsed)
 //Keyboard event handler (sync input)
 void Game::onKeyDown( SDL_KeyboardEvent event )
 {
+	Game* game = Game::instance;
+	World world = game->world;
+	EntityPlayer* player = world.player;
+
 	switch(event.keysym.sym)
 	{
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
 			//#ifdef EDITOR
-		case SDLK_2: addEntityInFront(camera,"data/building-antique-china.obj" , "data/color-atlas.png"); break;
+		case SDLK_2: addEntityInFront(camera,"data/box.obj" , "data/color-atlas.png"); break;
 		case SDLK_3: rayPick(camera); break;
-		case SDLK_KP_PLUS: rotateSelected(10.0f); break;
+		case SDLK_F2: rotateSelected(10.0f); break;
 		case SDLK_KP_MINUS: rotateSelected(-10.0f); break;
-		case SDLK_0: firstPerson = !firstPerson; break;
+		case SDLK_0: player->firstPerson = !player->firstPerson; break;
 			//#endif // EDITOR
 
 	}

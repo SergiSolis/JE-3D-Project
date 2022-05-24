@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GAMEMAP_H
+#define GAMEMAP_H
 #include "utils.h"
 #include <cmath>
 #include "mesh.h"
@@ -10,10 +11,10 @@ struct sPropViewData {
 };
 
 enum eCellType : uint8 {
-	BORDE, START,
+	SEA, 
+	FIELD,
 	WALL,
-	DOOR,
-	CHEST
+	BOX,
 };
 
 struct sCell {
@@ -41,3 +42,5 @@ public:
 	GameMap* loadGameMap(const char* filename);
 	void setViewData();
 };
+
+#endif

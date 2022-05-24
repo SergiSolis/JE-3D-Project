@@ -2,6 +2,7 @@
 #define WORLD_H
 
 #include "Entity.h"
+#include "Gamemap.h"
 #include "utils.h"
 #include "Stage.h"
 
@@ -21,6 +22,7 @@ public:
 
 	std::vector<EntityMesh*> static_entities;
 	std::vector<EntityMesh*> dynamic_entities;
+	EntityMesh* selectedEntity;
 
 	Mesh* mainCharacter = NULL;
 	Texture* texCharacter = NULL;
@@ -30,7 +32,8 @@ public:
 	Texture* sceneText = NULL;
 	Matrix44 sceneModel;
 
-	bool cameraLocked = false;
+	bool cameraLocked;
+	bool mouseLocked = true;
 
 	Stage* current_stage;
 	titleStage* title;
@@ -38,13 +41,15 @@ public:
 	playStage* play;
 	endStage* end;
 
-	GameMap* map;
+	GameMap* gamemap;
+	const float tileWidth = 4.0f;
+	const float tileHeight = 4.0f;
 
 	//Cielo
 	EntityMesh* sky;
-	Mesh* skybox;
-	Matrix44 skymodel;
-	Texture* tex;
+	Mesh* skyMesh;
+	Matrix44 skyModel;
+	Texture* skyTex;
 
 	//Suelo
 	EntityMesh* ground;

@@ -52,6 +52,7 @@ void runAnimation(Animation* anim, float time, Mesh* mesh, Texture* text, Matrix
 //void checkCollision(std::vector<Entity*> entidades);
 void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f);
 Vector3 checkCollision(Vector3 target);
+Vector3 checkCollisionBottom(Vector3 target);
 
 void addEntityInFront(Camera* cam, const char* meshName, const char* textName);
 void rayPick(Camera* cam);

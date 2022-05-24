@@ -92,6 +92,9 @@ public:
     EntityMesh* mesh;
     sPlayer mov;
     bool firstPerson;
+    bool cameraLocked;
+    bool isJumping;
+    bool isGrounded;
 
     EntityPlayer() {
         Shader* shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
@@ -108,11 +111,14 @@ public:
         mov.pos.y = 0;
         mov.jaw = 0;
 
-        firstPerson = false;
-
+        firstPerson = true;
+        cameraLocked = true;
+        isJumping = false;
+        isGrounded = true;
     }
 
     //methods overwritten 
+    void checkIsGrounded();
     void render();
     void update(float dt);
 };
