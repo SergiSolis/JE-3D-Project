@@ -41,34 +41,23 @@ void playStage::render()
 
 	world.ground->model = Matrix44();
 	world.ground->tiling = 500.0f;
-	//renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, game->camera, world.ground->tiling);
-	world.ground->render();
+	renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, game->camera, world.ground->tiling);
+	//world.ground->render();
 	
 	//player->render();
 	renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
 
-
-	for (size_t i = 0; i < world.gamemap->width; i++)
-	{
-		for (size_t j = 0; j < world.gamemap->height; j++)
-		{
-			sCell& cell = world.gamemap->getCell(i, j);
-			int index = (int)cell.type;
-			sPropViewData& prop = world.viewDatas[index];
-			if (index == 0) continue;
-
-			Matrix44 cellModel;
-			cellModel.translate(i * world.tileWidth, 0.0f, j * world.tileHeight);
-			//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
-			EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader);
-			world.static_entities.push_back(entity);
-		}
-	}
-	std::cout << "entities: " << world.static_entities.size() << std::endl;
-
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
 		EntityMesh* entity = world.static_entities[i];
+		Vector3 entityPos = entity->model.getTranslation();
+		Vector3 camPos = game->camera->eye;
+
+		BoundingBox entityBox = transformBoundingBox(entity->model, entity->mesh->box);
+		if (!game->camera->testBoxInFrustum(entityBox.center, entityBox.halfsize)) {
+			continue;
+		}
+
 		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, entity->shader, game->camera);
 		//entity->render();
 	}
@@ -143,7 +132,7 @@ void playStage::update(float seconds_elapsed)
 		}
 		
 		
-		std::cout << "entities: " << world.static_entities.size() << std::endl;
+
 		Vector3 targetPos = player->mov.pos + playerVel;
 		
 		player->mov.pos = checkCollision(targetPos);
@@ -209,50 +198,40 @@ Vector3 checkCollision(Vector3 target)
 	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
 
-
-	if (world.static_entities.size() == 0) {
-		if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
+	for (size_t i = 0; i < game->world.static_entities.size(); i++)
+	{
+		Vector3 posEnt = game->world.static_entities[i]->model.getTranslation();
+		//std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
+		if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
 		{
-			std::cout << "COLLISION BOTTOM" << std::endl;
-			player->isGrounded = true;
-			target.y = coll.y;
-		}
-	}
-	else {
-		for (size_t i = 0; i < game->world.static_entities.size(); i++)
-		{
-			Vector3 posEnt = game->world.static_entities[i]->model.getTranslation();
-			std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
-			if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
+			if (player->mov.pos.y >= coll.y)
 			{
-				if (player->mov.pos.y >= coll.y)
-				{
-					target.y = 2.25f;
-					player->isGrounded = true;
-				}
-				else {
-					std::cout << "COLLISION fromt" << std::endl;
-					pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
-
-					returned = player->mov.pos - pushAway;
-					returned.y = player->mov.pos.y;
-					return returned;
-				}
+				target.y = 2.25f;
+				player->isGrounded = true;
 			}
 			else {
-				if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
-				{
-					
-					player->isGrounded = true;
-					target.y = coll.y;
-				}
-				else {
-					player->isGrounded = false;
-				}
+				//std::cout << "COLLISION fromt" << std::endl;
+				pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
+				returned = player->mov.pos - pushAway;
+				returned.y = player->mov.pos.y;
+				return returned;
 			}
 		}
+		else {
+			if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
+			{
+					
+				player->isGrounded = true;
+				target.y = coll.y;
+			}
+			else {
+				player->isGrounded = false;
+			}
+
+		}
 	}
+
 
 	return target;
 }

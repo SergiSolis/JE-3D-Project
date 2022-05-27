@@ -65,6 +65,9 @@ public:
 
 	std::vector<EntityMesh*> static_entities;
 	std::vector<EntityMesh*> dynamic_entities;
+
+	StaticEntities* staticEntities;
+
 	EntityMesh* selectedEntity;
 
 	Mesh* mainCharacter = NULL;
@@ -109,6 +112,7 @@ public:
 	void loadWorld();
 	void setConfiguration();
 	void saveGame();
+	void importMap(std::vector<EntityMesh*>& entities);
 
 };
 

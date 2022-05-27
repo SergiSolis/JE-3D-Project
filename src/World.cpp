@@ -31,8 +31,29 @@ void World::loadWorld() {
 
 	gamemap = new GameMap();
 	gamemap = loadGameMap("data/mymap.map");
+	importMap(static_entities);
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 }
+
+void World::importMap(std::vector<EntityMesh*>& entities) {
+	for (size_t i = 0; i < gamemap->width; i++)
+	{
+		for (size_t j = 0; j < gamemap->height; j++)
+		{
+			sCell& cell = gamemap->getCell(i, j);
+			int index = (int)cell.type;
+			sPropViewData& prop = viewDatas[index];
+			if (index == 0) continue;
+
+			Matrix44 cellModel;
+			cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
+			//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
+			EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+			entities.push_back(entity);
+		}
+	}
+}
+
 
 GameMap* loadGameMap(const char* filename)
 {

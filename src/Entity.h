@@ -120,10 +120,10 @@ public:
 
 };
 
-class EntityMeshStatic : public EntityMesh
+class StaticEntities : public Entity
 {
 public:
-
+    std::vector<EntityMesh*> entities;
 };
 
 class EntityMeshDynamic : public EntityMesh
