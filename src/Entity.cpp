@@ -52,11 +52,11 @@ void EntityPlayer::update(float dt) {
 }
 
 void EntityPlayer::checkIsGrounded() {
-	if (mov.pos.y == 0)
+	if (pos.y == 0)
 	{
 		isGrounded = true;
 	}
-	else if (mov.pos.y > 0) {
+	else if (pos.y > 0) {
 		isGrounded = false;
 	}
 }
@@ -100,12 +100,12 @@ void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* ani
 	//enable shader
 	a_shader->enable();
 
-	float t = fmod(Game::instance->time, player->walk->duration) / player->walk->duration;
-	player->walk->assignTime(t * player->walk->duration);
-	player->run->assignTime(t * player->run->duration);
+	float t = fmod(Game::instance->time, anim->duration) / anim->duration;
+	anim->assignTime(t * anim->duration);
+	//player->run->assignTime(t * player->run->duration);
 
 	
-	blendSkeleton(&player->walk->skeleton, &player->run->skeleton, 0.5f, &player->resultSk);
+	//blendSkeleton(&player->walk->skeleton, &player->run->skeleton, 0.5f, &player->resultSk);
 
 	//Matrix44& neckLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Neck");
 	//neckLocalMatrix.rotate(180.0f * sin(Game::instance->time) * DEG2RAD, Vector3(0, 1, 0));
@@ -131,7 +131,7 @@ void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* ani
 	
 
 	//do the draw call
-	a_mesh->renderAnimated(primitive, &player->walk->skeleton);
+	a_mesh->renderAnimated(primitive, &anim->skeleton);
 
 	//disable shader
 	a_shader->disable();

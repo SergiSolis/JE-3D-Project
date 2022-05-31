@@ -26,9 +26,6 @@ FBO* fbo = NULL;
 
 Game* Game::instance = NULL;
 
-
-sPlayer player;
-
 std::vector<EntityMesh*> entities;
 EntityMesh* selectedEntity = NULL;
 

@@ -34,8 +34,8 @@ void playStage::render()
 	glEnable(GL_DEPTH_TEST);
 
 	player->model = Matrix44();
-	player->model.translate(player->mov.pos.x, player->mov.pos.y, player->mov.pos.z);
-	player->model.rotate(player->mov.jaw * DEG2RAD, Vector3(0, 1, 0));
+	player->model.translate(player->pos.x, player->pos.y, player->pos.z);
+	player->model.rotate(player->jaw * DEG2RAD, Vector3(0, 1, 0));
 	player->visualModel = player->model;
 
 	player->visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
@@ -48,7 +48,7 @@ void playStage::render()
 	
 	//player->render();
 	player->visualModel.scale(0.01f, 0.01f, 0.01f);
-	renderMeshAnim(GL_TRIANGLES, player->visualModel, player->mesh->mesh, player->walk, player->mesh->texture, player->mesh->shader, game->camera);
+	renderMeshAnim(GL_TRIANGLES, player->visualModel, player->mesh->mesh, player->animations[player->currentAnim], player->mesh->texture, player->mesh->shader, game->camera);
 	//renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
 
 	{
@@ -92,9 +92,11 @@ void playStage::update(float seconds_elapsed)
 	World world = game->world;
 	EntityPlayer* player = world.player;
 
+	player->currentAnim = ANIM_ID::IDLE;
+
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
-	player->mov.jumpLock = max(0.0f, player->mov.jumpLock - (seconds_elapsed * 2));
+	player->jumpLock = max(0.0f, player->jumpLock - (seconds_elapsed * 2));
 
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
@@ -113,48 +115,63 @@ void playStage::update(float seconds_elapsed)
 
 		if (player->firstPerson)
 		{
-			player->mov.pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
-			player->mov.jaw -= Input::mouse_delta.x * 5.0f * seconds_elapsed;
+			player->pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
+			player->jaw -= Input::mouse_delta.x * 5.0f * seconds_elapsed;
 			Input::centerMouse();
 			SDL_ShowCursor(false);
 		}
 		else {
-			if (Input::isKeyPressed(SDL_SCANCODE_D)) player->mov.jaw += rotateSpeed;
-			if (Input::isKeyPressed(SDL_SCANCODE_A)) player->mov.jaw -= rotateSpeed;
+			if (Input::isKeyPressed(SDL_SCANCODE_D)) player->jaw += rotateSpeed;
+			if (Input::isKeyPressed(SDL_SCANCODE_A)) player->jaw -= rotateSpeed;
 		}
 		Matrix44 playerRotation;
-		playerRotation.rotate(player->mov.jaw * DEG2RAD, Vector3(0, 1, 0));
+		playerRotation.rotate(player->jaw * DEG2RAD, Vector3(0, 1, 0));
 		Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
 		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
 		Vector3 jump = playerRotation.rotateVector(Vector3(0, 1, 0));
 		Vector3 playerVel;
 
+
 		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
 			playerSpeed = 20.0f * seconds_elapsed;
 		}
-
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel + (forward * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel - (forward * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_Q)) playerVel = playerVel - (right * playerSpeed);
-		if (Input::isKeyPressed(SDL_SCANCODE_E)) playerVel = playerVel + (right * playerSpeed);
-
-
-
-		//jump
-		if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->mov.pos.y <= 0.0f) {
-			//player->isGrounded = false;
-			//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
-			player->mov.jumpLock = 0.3f;
+		if (Input::isKeyPressed(SDL_SCANCODE_W)) { 
+			playerVel = playerVel + (forward * playerSpeed); 
+			player->currentAnim = ANIM_ID::WALK;
+		}
+		if (Input::isKeyPressed(SDL_SCANCODE_S)) {
+			playerVel = playerVel - (forward * playerSpeed);
+			player->currentAnim = ANIM_ID::WALK;
+		}
+		if (Input::isKeyPressed(SDL_SCANCODE_Q)) {
+			playerVel = playerVel - (right * playerSpeed);
+			player->currentAnim = ANIM_ID::WALK;
+		}
+		if (Input::isKeyPressed(SDL_SCANCODE_E)) {
+			playerVel = playerVel + (right * playerSpeed);
+			player->currentAnim = ANIM_ID::WALK;
+		}
+		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
+			player->currentAnim = ANIM_ID::RUN;
 		}
 
-		if (player->mov.jumpLock != 0.0f)
+		//jump
+		if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true) {
+			player->isGrounded = false;
+			//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
+			player->jumpLock = 0.3f;
+		}
+
+		if (player->jumpLock != 0.0f)
 		{
 			playerVel[1] += 0.15f;
 		}
-		if (player->mov.pos.y > 0.0f)
+		if (player->isGrounded == false)
 		{
+			player->currentAnim = ANIM_ID::JUMP;
 			playerVel[1] -= seconds_elapsed * 3;
 		}
+
 
 		/*
 		if (player->isGrounded == false)
@@ -164,9 +181,9 @@ void playStage::update(float seconds_elapsed)
 		*/
 		
 
-		Vector3 targetPos = player->mov.pos + playerVel;
+		Vector3 targetPos = player->pos + playerVel;
 		
-		player->mov.pos = targetPos;
+		player->pos = checkCollision(targetPos);
 			
 	}
 	else
@@ -203,7 +220,7 @@ void setCamera(Camera *cam, Matrix44 model)
 
 		if (player->firstPerson) {
 			Matrix44 camModel = player->model;
-			camModel.rotate(player->mov.pitch * DEG2RAD, Vector3(1, 0, 0));
+			camModel.rotate(player->pitch * DEG2RAD, Vector3(1, 0, 0));
 
 			eye = player->model * Vector3(0.0f, 1.0f, -0.5f);
 			center = eye + camModel.rotateVector(Vector3(0.0f, 0.0f, -1.0f));
@@ -235,32 +252,34 @@ Vector3 checkCollision(Vector3 target)
 		//std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
 		if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
 		{
-			if (player->mov.pos.y >= coll.y)
+			if (player->pos.y >= coll.y)
 			{
-				target.y = 2.25f;
+				target.y = coll.y + 0.05f;
 				player->isGrounded = true;
 			}
 			else {
 				//std::cout << "COLLISION fromt" << std::endl;
 				pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
-				returned = player->mov.pos - pushAway;
-				returned.y = player->mov.pos.y;
+				returned = player->pos - pushAway;
+				returned.y = player->pos.y;
 				return returned;
 			}
 		}
+		
 		else {
 			if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
 			{
-					
+				//std::cout << "EO" << std::endl;
 				player->isGrounded = true;
-				target.y = coll.y;
+				//target.y = coll.y;
 			}
 			else {
 				player->isGrounded = false;
 			}
 
 		}
+		
 	}
 
 

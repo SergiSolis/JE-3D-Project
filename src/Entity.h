@@ -63,26 +63,34 @@ public:
     void update(float dt);
 };
 
-struct sPlayer {
-    Vector3 pos;
-    Vector3 vel;
-    float jumpLock;
-    float jaw;
-    float pitch;
+enum ANIM_ID: uint8 {
+    IDLE,
+    WALK,
+    RUN,
+    JUMP
 };
 
 class EntityPlayer : public Entity
 {
 public:
     EntityMesh* mesh;
-    Animation* idle;
-    Animation* walk;
-    Animation* run;
-    sPlayer mov;
+    //Animation* idle;
+    //Animation* walk;
+    //Animation* run;
+
+    std::vector<Animation*> animations;
+    ANIM_ID currentAnim;
     bool firstPerson;
     bool cameraLocked;
-    bool isJumping;
     bool isGrounded;
+
+    Vector3 pos;
+    Vector3 vel;
+    float jumpLock;
+    float jaw;
+    float pitch;
+
+
 
     Matrix44 visualModel;
     Skeleton resultSk;
@@ -90,12 +98,17 @@ public:
     EntityPlayer() {
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         Matrix44 playerModel;
-        playerModel.translate(mov.pos.x, mov.pos.y, mov.pos.z);
-        playerModel.rotate(mov.jaw * DEG2RAD, Vector3(0, 1, 0));
+        playerModel.translate(pos.x, pos.y, pos.z);
+        playerModel.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
 
-        idle = Animation::Get("data/idle.skanim");
-        walk = Animation::Get("data/walk.skanim");
-        run = Animation::Get("data/run.skanim");
+
+        animations.reserve(4);
+        animations.push_back(Animation::Get("data/idle.skanim"));
+        animations.push_back(Animation::Get("data/walk.skanim"));
+        animations.push_back(Animation::Get("data/run.skanim"));
+        animations.push_back(Animation::Get("data/jump.skanim"));
+        
+        currentAnim = ANIM_ID::IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
         Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
@@ -104,18 +117,17 @@ public:
         playerModel.scale(0.01f, 0.01f, 0.01f);
         mesh = new EntityMesh(GL_TRIANGLES, playerModel, playerMesh, playerTex, shader);
 
-        mov.pos.x = 10;
-        mov.pos.y = 0;
-        mov.pos.z = 10;
-        mov.vel.x = 0;
-        mov.vel.y = 0;
-        mov.vel.z = 0;
-        mov.jaw = 0;
-        mov.jumpLock = 0.0f;
+        pos.x = 10;
+        pos.y = 0;
+        pos.z = 10;
+        vel.x = 0;
+        vel.y = 0;
+        vel.z = 0;
+        jaw = 0;
+        jumpLock = 0.0f;
 
         firstPerson = false;
         cameraLocked = true;
-        isJumping = false;
         isGrounded = true;
     }
 

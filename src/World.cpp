@@ -56,7 +56,7 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 			sPropViewData& prop = viewDatas[index];
 			if (index == 0) continue;
 			if (index == 3) {
-				player->mov.pos = CellToWorldCenter(Vector2(i, j), 2);
+				player->pos = CellToWorldCenter(Vector2(i, j), 2);
 			}else{
 				Matrix44 cellModel;
 				cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
