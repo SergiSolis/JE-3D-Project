@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "utils.h"
 #include "Stage.h"
+#include "includes.h"
 
 enum eCellType : uint8 {
 	SEA,
@@ -44,6 +45,11 @@ public:
 	}
 };
 
+//We assume maps always starts at (0,0)
+
+Vector3 CellToWorld(Vector2 cellPos, int cellsize);
+Vector3 CellToWorldCenter(Vector2 cellPos, int cellsize);
+
 struct sPropViewData {
 	Mesh* mesh;
 	Texture* texture;
@@ -58,7 +64,7 @@ public:
 	float angle = 0;
 	float mouse_speed = 100.0f;
 	FBO* fbo = NULL;
-	float timeCounter = 0.0;
+	float timeCounter = 0.0f;
 	bool startCounter = false;
 
 	EntityPlayer* player;

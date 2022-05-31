@@ -36,7 +36,9 @@ void playStage::render()
 	player->model = Matrix44();
 	player->model.translate(player->mov.pos.x, player->mov.pos.y, player->mov.pos.z);
 	player->model.rotate(player->mov.jaw * DEG2RAD, Vector3(0, 1, 0));
+	player->visualModel = player->model;
 
+	player->visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
 	setCamera(game->camera, player->model);
 
 	world.ground->model = Matrix44();
@@ -45,7 +47,17 @@ void playStage::render()
 	//world.ground->render();
 	
 	//player->render();
-	renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
+	player->visualModel.scale(0.01f, 0.01f, 0.01f);
+	renderMeshAnim(GL_TRIANGLES, player->visualModel, player->mesh->mesh, player->walk, player->mesh->texture, player->mesh->shader, game->camera);
+	//renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
+
+	{
+
+		Mesh* mesh = Mesh::Get("data/sphere.obj");
+		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Head");
+
+		//renderMesh(GL_TRIANGLES, handLocalMatrix * player->visualModel, mesh, player->mesh->texture, player->mesh->shader, game->camera);
+	}
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{

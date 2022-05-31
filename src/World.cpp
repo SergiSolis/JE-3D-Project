@@ -35,6 +35,17 @@ void World::loadWorld() {
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 }
 
+Vector3 CellToWorld(Vector2 cellPos, int cellsize) { //esquina superior izquierda
+	Game* game = Game::instance;
+	Vector2 result = cellPos * cellsize;
+	return Vector3(cellPos.x * game->world.tileWidth, 0.0f, cellPos.y * game->world.tileWidth);
+}
+
+Vector3 CellToWorldCenter(Vector2 cellPos, int cellsize) { //center
+	Vector2 result = cellPos * cellsize - Vector2(cellsize / 2, cellsize / 2);
+	return Vector3(result.x, 0.0f, result.y);
+}
+
 void World::importMap(std::vector<EntityMesh*>& entities) {
 	for (size_t i = 0; i < gamemap->width; i++)
 	{
@@ -44,12 +55,15 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 			int index = (int)cell.type;
 			sPropViewData& prop = viewDatas[index];
 			if (index == 0) continue;
-
-			Matrix44 cellModel;
-			cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
-			//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
-			EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-			entities.push_back(entity);
+			if (index == 3) {
+				player->mov.pos = CellToWorldCenter(Vector2(i, j), 2);
+			}else{
+				Matrix44 cellModel;
+				cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
+				//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
+				EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+				entities.push_back(entity);
+			}
 		}
 	}
 }

@@ -10,6 +10,7 @@
 #include "input.h"
 #include "animation.h"
 
+
 class Entity
 {
 public:
@@ -72,21 +73,33 @@ class EntityPlayer : public Entity
 {
 public:
     EntityMesh* mesh;
+    Animation* idle;
+    Animation* walk;
+    Animation* run;
     sPlayer mov;
     bool firstPerson;
     bool cameraLocked;
     bool isJumping;
     bool isGrounded;
 
+    Matrix44 visualModel;
+    Skeleton resultSk;
+
     EntityPlayer() {
-        Shader* shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+        Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         Matrix44 playerModel;
         playerModel.translate(mov.pos.x, mov.pos.y, mov.pos.z);
         playerModel.rotate(mov.jaw * DEG2RAD, Vector3(0, 1, 0));
 
-        Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
-        Mesh* playerMesh = Mesh::Get("data/skeleton_back.obj");
+        idle = Animation::Get("data/idle.skanim");
+        walk = Animation::Get("data/walk.skanim");
+        run = Animation::Get("data/run.skanim");
 
+        Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+        Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
+        //Mesh* playerMesh = Mesh::Get("data/skeleton.obj");
+
+        playerModel.scale(0.01f, 0.01f, 0.01f);
         mesh = new EntityMesh(GL_TRIANGLES, playerModel, playerMesh, playerTex, shader);
 
         mov.pos.x = 10;
@@ -139,5 +152,5 @@ public:
 };
 
 void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f);
-
+void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* anim, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f);
 #endif 
