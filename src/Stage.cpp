@@ -94,6 +94,8 @@ void playStage::update(float seconds_elapsed)
 
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
+	player->mov.jumpLock = max(0.0f, player->mov.jumpLock - (seconds_elapsed * 2));
+
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
 
@@ -103,7 +105,7 @@ void playStage::update(float seconds_elapsed)
 	}
 	if (player->cameraLocked)
 	{
-		float playerSpeed = 20.0f * seconds_elapsed;
+		float playerSpeed = 10.0f * seconds_elapsed;
 		float rotateSpeed = 120.0f * seconds_elapsed;
 		float gravity = 9.807f;
 		float jumpHeight = 5.0f;
@@ -127,27 +129,44 @@ void playStage::update(float seconds_elapsed)
 		Vector3 jump = playerRotation.rotateVector(Vector3(0, 1, 0));
 		Vector3 playerVel;
 
+		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
+			playerSpeed = 20.0f * seconds_elapsed;
+		}
+
 		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerVel = playerVel + (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerVel = playerVel - (forward * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_Q)) playerVel = playerVel - (right * playerSpeed);
 		if (Input::isKeyPressed(SDL_SCANCODE_E)) playerVel = playerVel + (right * playerSpeed);
 
-		
-		if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded) {
-			player->isGrounded = false;
-			playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
+
+
+		//jump
+		if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->mov.pos.y <= 0.0f) {
+			//player->isGrounded = false;
+			//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
+			player->mov.jumpLock = 0.3f;
 		}
 
+		if (player->mov.jumpLock != 0.0f)
+		{
+			playerVel[1] += 0.15f;
+		}
+		if (player->mov.pos.y > 0.0f)
+		{
+			playerVel[1] -= seconds_elapsed * 3;
+		}
+
+		/*
 		if (player->isGrounded == false)
 		{
 			playerVel = playerVel - (jump * gravity * seconds_elapsed);
 		}
-		
+		*/
 		
 
 		Vector3 targetPos = player->mov.pos + playerVel;
 		
-		player->mov.pos = checkCollision(targetPos);
+		player->mov.pos = targetPos;
 			
 	}
 	else

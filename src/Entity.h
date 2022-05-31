@@ -65,6 +65,8 @@ public:
 
 struct sPlayer {
     Vector3 pos;
+    Vector3 vel;
+    float jumpLock;
     float jaw;
     float pitch;
 };
@@ -105,9 +107,13 @@ public:
         mov.pos.x = 10;
         mov.pos.y = 0;
         mov.pos.z = 10;
+        mov.vel.x = 0;
+        mov.vel.y = 0;
+        mov.vel.z = 0;
         mov.jaw = 0;
+        mov.jumpLock = 0.0f;
 
-        firstPerson = true;
+        firstPerson = false;
         cameraLocked = true;
         isJumping = false;
         isGrounded = true;
