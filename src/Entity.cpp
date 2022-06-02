@@ -104,14 +104,15 @@ void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* ani
 	anim->assignTime(t * anim->duration);
 	//player->run->assignTime(t * player->run->duration);
 
+	player->resultSk = player->animations[player->currentAnim]->skeleton;
 	
 	//blendSkeleton(&player->walk->skeleton, &player->run->skeleton, 0.5f, &player->resultSk);
 
 	//Matrix44& neckLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Neck");
 	//neckLocalMatrix.rotate(180.0f * sin(Game::instance->time) * DEG2RAD, Vector3(0, 1, 0));
 
-	//Matrix44& headLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Head");
-	//headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
+	Matrix44& headLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Head");
+	headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
 
 	//Matrix44& RightForeArmLocalMatrix = resultSk.getBoneMatrix("mixamorig_RightForeArm");
 	//RightForeArmLocalMatrix.scale(0.0f, 0.0f, 0.0f);
@@ -131,7 +132,7 @@ void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* ani
 	
 
 	//do the draw call
-	a_mesh->renderAnimated(primitive, &anim->skeleton);
+	a_mesh->renderAnimated(primitive, &player->resultSk);
 
 	//disable shader
 	a_shader->disable();

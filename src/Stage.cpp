@@ -51,12 +51,13 @@ void playStage::render()
 	renderMeshAnim(GL_TRIANGLES, player->visualModel, player->mesh->mesh, player->animations[player->currentAnim], player->mesh->texture, player->mesh->shader, game->camera);
 	//renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
 
-	{
+	if(player->objectSelected) {
 
-		Mesh* mesh = Mesh::Get("data/sphere.obj");
-		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Head");
-
-		//renderMesh(GL_TRIANGLES, handLocalMatrix * player->visualModel, mesh, player->mesh->texture, player->mesh->shader, game->camera);
+		Mesh* mesh = Mesh::Get("data/box.obj");
+		player->resultSk = player->animations[player->currentAnim]->skeleton;
+		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandIndex4", false);
+		handLocalMatrix.scale(0.5f, 0.5f, 0.5f);
+		renderMesh(GL_TRIANGLES, handLocalMatrix * player->visualModel, mesh, player->mesh->texture, player->mesh->shader, game->camera);
 	}
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
@@ -92,11 +93,13 @@ void playStage::update(float seconds_elapsed)
 	World world = game->world;
 	EntityPlayer* player = world.player;
 
+	//std::cout << "IS GROUNDED: " << player->isGrounded << std::endl;
+
 	player->currentAnim = ANIM_ID::IDLE;
 
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
-	player->jumpLock = max(0.0f, player->jumpLock - (seconds_elapsed * 2));
+	player->jumpLock = max(0.0f, player->jumpLock - (seconds_elapsed));
 
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
@@ -184,7 +187,10 @@ void playStage::update(float seconds_elapsed)
 		Vector3 targetPos = player->pos + playerVel;
 		
 		player->pos = checkCollision(targetPos);
-			
+		//player->pos = targetPos;
+		if (Input::isKeyPressed(SDL_SCANCODE_G)) {
+			takeEntity(game->camera);
+		}
 	}
 	else
 	{
@@ -246,6 +252,8 @@ Vector3 checkCollision(Vector3 target)
 	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
 
+	
+
 	for (size_t i = 0; i < game->world.static_entities.size(); i++)
 	{
 		Vector3 posEnt = game->world.static_entities[i]->model.getTranslation();
@@ -266,9 +274,8 @@ Vector3 checkCollision(Vector3 target)
 				return returned;
 			}
 		}
-		
 		else {
-			if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 1, coll, collnorm))
+			if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 0.01, coll, collnorm))
 			{
 				//std::cout << "EO" << std::endl;
 				player->isGrounded = true;
@@ -277,9 +284,8 @@ Vector3 checkCollision(Vector3 target)
 			else {
 				player->isGrounded = false;
 			}
-
 		}
-		
+				
 	}
 
 
@@ -315,13 +321,13 @@ void addEntityInFront(Camera* cam, const char* meshName, const char* textName) {
 
 	Vector3 spawnPos = RayPlaneCollision(Vector3(), Vector3(0, 1, 0), rayOrigin, dir);
 	Matrix44 model;
-	model.translate(spawnPos.x, spawnPos.y, spawnPos.z);
+	model.translate(spawnPos.x, spawnPos.y + 5.0f, spawnPos.z);
 	model.scale(3.0f, 3.0f, 3.0f);
 	EntityMesh* entity = new EntityMesh(GL_TRIANGLES, model, Mesh::Get(meshName), Texture::Get(textName), Game::instance->world.shader);
 	Game::instance->world.static_entities.push_back(entity);
 }
 
-void rayPick(Camera* cam) {
+EntityMesh* rayPick(Camera* cam) {
 
 	Vector2 mouse = Input::mouse_position;
 
@@ -339,6 +345,32 @@ void rayPick(Camera* cam) {
 		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
 		{
 			std::cout << "RayPicked: " << entity->tiling << std::endl;
+			world.selectedEntity = entity;
+			break;
+		}
+	}
+	return world.selectedEntity;
+}
+
+void takeEntity(Camera* cam) {
+	Game* game = Game::instance;
+	World world = game->world;
+	EntityPlayer* player = world.player;
+
+	Vector2 mouse = Input::mouse_position;
+
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, game->window_width, game->window_height);
+	Vector3 rayOrigin = cam->eye;
+
+	for (size_t i = 0; i < world.static_entities.size(); i++)
+	{
+		EntityMesh* entity = world.static_entities[i];
+		Vector3 pos;
+		Vector3 normal;
+		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
+		{
+			std::cout << "Object selected: " << entity->tiling << std::endl;
+			player->objectSelected = true;
 			world.selectedEntity = entity;
 			break;
 		}

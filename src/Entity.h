@@ -90,6 +90,7 @@ public:
     float jaw;
     float pitch;
 
+    bool objectSelected;
 
 
     Matrix44 visualModel;
@@ -129,6 +130,7 @@ public:
         firstPerson = false;
         cameraLocked = true;
         isGrounded = true;
+        objectSelected = false;
     }
 
     //methods overwritten 

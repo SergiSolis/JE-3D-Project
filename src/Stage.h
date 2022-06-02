@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "camera.h"
 #include "animation.h"
+#include "Entity.h"
 #include "extra/bass.h"
 
 class Stage {
@@ -51,7 +52,8 @@ Vector3 checkCollision(Vector3 target);
 Vector3 checkCollisionBottom(Vector3 target);
 
 void addEntityInFront(Camera* cam, const char* meshName, const char* textName);
-void rayPick(Camera* cam);
+EntityMesh* rayPick(Camera* cam);
+void takeEntity(Camera* cam);
 void rotateSelected(float angleDegrees);
 
 #endif 
