@@ -46,6 +46,7 @@ public:
 };
 
 void renderWorld();
+void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV = false);
 void setCamera(Camera* cam, Matrix44 model);
 void RenderGUI(float x, float y, float w, float h, Texture* dialogo, bool flipuvs);
 void runAnimation(Animation* anim, float time, Mesh* mesh, Texture* text, Matrix44 model,bool loop);

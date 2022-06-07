@@ -12,6 +12,12 @@
 #include <cmath>
 
 void EntityMesh::render() {
+	Game* game = Game::instance;
+	World world = game->world;
+	BoundingBox entityBox = transformBoundingBox(model, mesh->box);
+	if (!game->camera->testBoxInFrustum(entityBox.center, entityBox.halfsize)) {
+		return;
+	}
 	assert(mesh != NULL, "mesh in renderMesh was null");
 	if (!shader) return;
 
@@ -121,6 +127,7 @@ void EntityPlayer::render() {
 
 void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
 	Game* game = Game::instance;
+
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
 	if (!a_shader) return;
 

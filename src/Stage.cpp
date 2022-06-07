@@ -41,7 +41,20 @@ void playStage::render()
 	}
 		
 	//Draw the floor grid
-	drawGrid();
+	//drawGrid();
+
+	//RENDER ALL GUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	Texture* texture = Texture::Get("data/fangs.png");
+	renderGUI(100.0f, 100.0f, 100.0f, 100.0f, texture, true);
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
@@ -192,18 +205,45 @@ void renderWorld() {
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
 		EntityMesh* entity = world.static_entities[i];
-		Vector3 entityPos = entity->model.getTranslation();
-		Vector3 camPos = game->camera->eye;
-
-		BoundingBox entityBox = transformBoundingBox(entity->model, entity->mesh->box);
-		if (!game->camera->testBoxInFrustum(entityBox.center, entityBox.halfsize)) {
-			continue;
-		}
-
 		entity->render();
 	}
 }
 
+void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV) {
+	int windowWidth = Game::instance->window_width;
+	int windowHeight = Game::instance->window_height;
+	Mesh quad;
+	quad.createQuad(x, y, w, h, flipYV);
+
+	Camera cam2D;
+	cam2D.setOrthographic(0, windowWidth, windowHeight, 0, -1, 1);
+	assert(mesh != NULL, "mesh in renderMesh was null");
+
+	Shader* shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+	
+	if (!shader) return;
+
+	//enable shader
+	shader->enable();
+
+	//upload uniforms
+	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	shader->setUniform("u_viewprojection", cam2D.viewprojection_matrix);
+	if (tex != NULL)
+	{
+		shader->setUniform("u_texture", tex, 0);
+	}
+	shader->setUniform("u_time", time);
+	shader->setUniform("u_text_tiling", 1.0f);
+	Matrix44 quadModel;
+	quadModel.translate(sin(Game::instance->time ) * 20, 0, 0);
+	shader->setUniform("u_model", quadModel);
+	//do the draw call
+	quad.render(GL_TRIANGLES);
+
+	//disable shader
+	shader->disable();
+}
 
 void setCamera(Camera *cam, Matrix44 model)
 {
