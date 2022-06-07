@@ -120,6 +120,9 @@ public:
 	void saveGame();
 	void importMap(std::vector<EntityMesh*>& entities);
 
+	void addEntity();
+	void deleteEntity();
+
 };
 
 GameMap* loadGameMap(const char* filename);

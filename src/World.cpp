@@ -19,8 +19,7 @@ void World::loadWorld() {
 	Matrix44 groundModel;
 	Mesh* groundMesh = new Mesh();
 	groundMesh->createPlane(1000);
-	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader);
-	ground->tiling = 500.0f;
+	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader, 500.0f);
 	cameraLocked = true;
 
 	viewDatas[1].mesh = Mesh::Get("data/wall.obj");

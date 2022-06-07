@@ -43,9 +43,7 @@ void EntityMesh::update(float dt) {
 	float a = 20.0f * dt;
 }
 
-void EntityPlayer::render() {
-	mesh->render();
-}
+
 
 void EntityPlayer::update(float dt) {
 	mesh->update(dt);
@@ -58,6 +56,66 @@ void EntityPlayer::checkIsGrounded() {
 	}
 	else if (pos.y > 0) {
 		isGrounded = false;
+	}
+}
+
+void EntityPlayer::render() {
+	Game* game = Game::instance;
+	World world = game->world;
+
+	model = Matrix44();
+	model.translate(pos.x, pos.y, pos.z);
+	model.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
+	visualModel = model;
+
+	visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+	visualModel.scale(0.01f, 0.01f, 0.01f);
+
+	assert(a_mesh != NULL, "mesh in renderMesh was null");
+	if (!mesh->shader) return;
+
+	//enable shader
+	mesh->shader->enable();
+
+	float t = fmod(Game::instance->time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	animations[currentAnim]->assignTime(t * animations[currentAnim]->duration);
+	//player->run->assignTime(t * player->run->duration);
+
+	resultSk = animations[currentAnim]->skeleton;
+
+	//blendSkeleton(&player->walk->skeleton, &player->run->skeleton, 0.5f, &player->resultSk);
+
+	//Matrix44& neckLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Neck");
+	//neckLocalMatrix.rotate(180.0f * sin(Game::instance->time) * DEG2RAD, Vector3(0, 1, 0));
+
+	Matrix44& headLocalMatrix = resultSk.getBoneMatrix("mixamorig_Head");
+	headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
+
+	//Matrix44& RightForeArmLocalMatrix = resultSk.getBoneMatrix("mixamorig_RightForeArm");
+	//RightForeArmLocalMatrix.scale(0.0f, 0.0f, 0.0f);
+
+	//upload uniforms
+	mesh->shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	mesh->shader->setUniform("u_viewprojection", game->camera->viewprojection_matrix);
+	if (mesh->texture != NULL)
+	{
+		mesh->shader->setUniform("u_texture", mesh->texture, 0);
+	}
+	mesh->shader->setUniform("u_time", time);
+	mesh->shader->setUniform("u_text_tiling", 1.0f);
+	mesh->shader->setUniform("u_model", visualModel);
+
+
+
+
+	//do the draw call
+	mesh->mesh->renderAnimated(mesh->primitive, &resultSk);
+
+	//disable shader
+	mesh->shader->disable();
+
+	if (!game->world.cameraLocked) {
+		mesh->mesh->renderBounding(visualModel);
 	}
 }
 

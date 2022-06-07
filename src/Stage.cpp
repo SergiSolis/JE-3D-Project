@@ -11,7 +11,6 @@ void playStage::render()
 	Game* game = Game::instance;
 	World world = game->world;
 	EntityPlayer* player = world.player;
-	// loadMesh();
 
 	// set the clear color (the background color)
 	glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -27,55 +26,20 @@ void playStage::render()
 	// set the camera as default
 	game->camera->enable();
 
-	glDisable(GL_DEPTH_TEST);
-	world.skyModel.translate(game->camera->eye.x, game->camera->eye.y - 10.0f, game->camera->eye.z);
-	renderMesh(GL_TRIANGLES, world.skyModel, world.sky->mesh, world.sky->texture, world.sky->shader, game->camera);
-	//world.sky->render();
-	glEnable(GL_DEPTH_TEST);
-
-	player->model = Matrix44();
-	player->model.translate(player->pos.x, player->pos.y, player->pos.z);
-	player->model.rotate(player->jaw * DEG2RAD, Vector3(0, 1, 0));
-	player->visualModel = player->model;
-
-	player->visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+	renderWorld();
 	setCamera(game->camera, player->model);
-
-	world.ground->model = Matrix44();
-	world.ground->tiling = 500.0f;
-	renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, game->camera, world.ground->tiling);
-	//world.ground->render();
+	player->render();
 	
-	//player->render();
-	player->visualModel.scale(0.01f, 0.01f, 0.01f);
-	renderMeshAnim(GL_TRIANGLES, player->visualModel, player->mesh->mesh, player->animations[player->currentAnim], player->mesh->texture, player->mesh->shader, game->camera);
-	//renderMesh(GL_TRIANGLES, player->model, player->mesh->mesh, player->mesh->texture, player->mesh->shader, game->camera);
-
-	if(player->objectSelected) {
+	if(player->objectSelected != NULL) {
 
 		Mesh* mesh = Mesh::Get("data/box.obj");
 		player->resultSk = player->animations[player->currentAnim]->skeleton;
 		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandIndex4", false);
 		handLocalMatrix.scale(0.5f, 0.5f, 0.5f);
 		renderMesh(GL_TRIANGLES, handLocalMatrix * player->visualModel, mesh, player->mesh->texture, player->mesh->shader, game->camera);
+		//world.static_entities.erase(world.static_entities.begin() + player->objectSelected);
 	}
-
-	for (size_t i = 0; i < world.static_entities.size(); i++)
-	{
-		EntityMesh* entity = world.static_entities[i];
-		Vector3 entityPos = entity->model.getTranslation();
-		Vector3 camPos = game->camera->eye;
-
-		BoundingBox entityBox = transformBoundingBox(entity->model, entity->mesh->box);
-		if (!game->camera->testBoxInFrustum(entityBox.center, entityBox.halfsize)) {
-			continue;
-		}
-
-		renderMesh(GL_TRIANGLES, entity->model, entity->mesh, entity->texture, entity->shader, game->camera);
-		//entity->render();
-	}
-	
-	
+		
 	//Draw the floor grid
 	drawGrid();
 
@@ -182,15 +146,16 @@ void playStage::update(float seconds_elapsed)
 			playerVel = playerVel - (jump * gravity * seconds_elapsed);
 		}
 		*/
-		
+
+		if (Input::isKeyPressed(SDL_SCANCODE_G)) {
+			takeEntity(game->camera, world.static_entities);
+		}
 
 		Vector3 targetPos = player->pos + playerVel;
 		
 		player->pos = checkCollision(targetPos);
 		//player->pos = targetPos;
-		if (Input::isKeyPressed(SDL_SCANCODE_G)) {
-			takeEntity(game->camera);
-		}
+
 	}
 	else
 	{
@@ -211,6 +176,34 @@ void playStage::update(float seconds_elapsed)
 	}
 
 }
+
+void renderWorld() {
+	Game* game = Game::instance;
+	World world = game->world;
+	EntityPlayer* player = world.player;
+
+	glDisable(GL_DEPTH_TEST);
+	//world.skyModel.translate(game->camera->eye.x, game->camera->eye.y - 10.0f, game->camera->eye.z);
+	world.sky->render();
+	glEnable(GL_DEPTH_TEST);
+
+	world.ground->render();
+
+	for (size_t i = 0; i < world.static_entities.size(); i++)
+	{
+		EntityMesh* entity = world.static_entities[i];
+		Vector3 entityPos = entity->model.getTranslation();
+		Vector3 camPos = game->camera->eye;
+
+		BoundingBox entityBox = transformBoundingBox(entity->model, entity->mesh->box);
+		if (!game->camera->testBoxInFrustum(entityBox.center, entityBox.halfsize)) {
+			continue;
+		}
+
+		entity->render();
+	}
+}
+
 
 void setCamera(Camera *cam, Matrix44 model)
 {
@@ -252,13 +245,11 @@ Vector3 checkCollision(Vector3 target)
 	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
 
-	
-
-	for (size_t i = 0; i < game->world.static_entities.size(); i++)
+	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
-		Vector3 posEnt = game->world.static_entities[i]->model.getTranslation();
+		Vector3 posEnt = world.static_entities[i]->model.getTranslation();
 		//std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
-		if (game->world.static_entities[i]->mesh->testSphereCollision(game->world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
+		if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
 		{
 			if (player->pos.y >= coll.y)
 			{
@@ -275,7 +266,7 @@ Vector3 checkCollision(Vector3 target)
 			}
 		}
 		else {
-			if (game->world.ground->mesh->testSphereCollision(game->world.ground->model, bottomCharacter, 0.01, coll, collnorm))
+			if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.01, coll, collnorm))
 			{
 				//std::cout << "EO" << std::endl;
 				player->isGrounded = true;
@@ -287,7 +278,6 @@ Vector3 checkCollision(Vector3 target)
 		}
 				
 	}
-
 
 	return target;
 }
@@ -352,26 +342,39 @@ EntityMesh* rayPick(Camera* cam) {
 	return world.selectedEntity;
 }
 
-void takeEntity(Camera* cam) {
+void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 	Game* game = Game::instance;
 	World world = game->world;
 	EntityPlayer* player = world.player;
+	std::vector<EntityMesh*>& s_entities = Game::instance->world.static_entities;
 
 	Vector2 mouse = Input::mouse_position;
 
 	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, game->window_width, game->window_height);
 	Vector3 rayOrigin = cam->eye;
 
-	for (size_t i = 0; i < world.static_entities.size(); i++)
+	Vector3 playerPos = player->visualModel.getTranslation();
+	
+
+	for (size_t i = 0; i < Game::instance->world.static_entities.size(); i++)
 	{
-		EntityMesh* entity = world.static_entities[i];
+		EntityMesh* entity = Game::instance->world.static_entities[i];
 		Vector3 pos;
 		Vector3 normal;
-		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal))
+
+		Vector3 entityPos = entity->model.getTranslation();
+
+		//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
+		
+
+		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
 		{
 			std::cout << "Object selected: " << entity->tiling << std::endl;
-			player->objectSelected = true;
+			player->objectSelected = i;
 			world.selectedEntity = entity;
+			//world.static_entities.erase(world.static_entities.begin() + i);
+			//world.static_entities.clear();
+			s_entities.erase(Game::instance->world.static_entities.begin() + i);
 			break;
 		}
 	}

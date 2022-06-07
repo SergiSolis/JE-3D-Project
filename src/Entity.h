@@ -48,14 +48,15 @@ public:
     Mesh* mesh;
     Texture* texture;
     Shader* shader;
-    int tiling = 1.0f;
+    float tiling;
 
-    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad) {
+    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f) {
         primitive = prim;
         model = new_model;
         mesh = mes;
         texture = tex;
         shader = shad;
+        tiling = til;
     }
 
     //methods overwritten 
@@ -90,7 +91,7 @@ public:
     float jaw;
     float pitch;
 
-    bool objectSelected;
+    int objectSelected;
 
 
     Matrix44 visualModel;
@@ -131,6 +132,10 @@ public:
         cameraLocked = true;
         isGrounded = true;
         objectSelected = false;
+
+
+
+
     }
 
     //methods overwritten 

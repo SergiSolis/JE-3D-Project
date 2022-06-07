@@ -45,6 +45,7 @@ public:
 	virtual void update(float dt) {};
 };
 
+void renderWorld();
 void setCamera(Camera* cam, Matrix44 model);
 void RenderGUI(float x, float y, float w, float h, Texture* dialogo, bool flipuvs);
 void runAnimation(Animation* anim, float time, Mesh* mesh, Texture* text, Matrix44 model,bool loop);
@@ -53,7 +54,7 @@ Vector3 checkCollisionBottom(Vector3 target);
 
 void addEntityInFront(Camera* cam, const char* meshName, const char* textName);
 EntityMesh* rayPick(Camera* cam);
-void takeEntity(Camera* cam);
+void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities);
 void rotateSelected(float angleDegrees);
 
 #endif 
