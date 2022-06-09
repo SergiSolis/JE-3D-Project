@@ -11,6 +11,7 @@
 #include "animation.h"
 
 
+
 class Entity
 {
 public:
@@ -71,13 +72,18 @@ enum ANIM_ID: uint8 {
     JUMP
 };
 
+enum ITEM_ID : uint8 {
+    BOX_HAND,
+    WALL_HAND,
+    NONE
+};
+
 class EntityPlayer : public Entity
 {
 public:
     EntityMesh* mesh;
-    //Animation* idle;
-    //Animation* walk;
-    //Animation* run;
+    std::vector<EntityMesh*> inventory;
+    ITEM_ID currentItem;
 
     std::vector<Animation*> animations;
     ANIM_ID currentAnim;
@@ -91,9 +97,6 @@ public:
     float jaw;
     float pitch;
 
-    int objectSelected;
-
-
     Matrix44 visualModel;
     Skeleton resultSk;
 
@@ -103,7 +106,14 @@ public:
         playerModel.translate(pos.x, pos.y, pos.z);
         playerModel.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
 
+        currentItem = ITEM_ID::NONE;
 
+        inventory.reserve(2);
+        EntityMesh* entityBox = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/box.obj"), Texture::Get("data/color-atlas.png"), shader);
+        EntityMesh* entityWall = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/wall.obj"), Texture::Get("data/color-atlas.png"), shader);
+        inventory.push_back(entityBox);
+        inventory.push_back(entityWall);
+        
         animations.reserve(4);
         animations.push_back(Animation::Get("data/idle.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
@@ -131,11 +141,6 @@ public:
         firstPerson = false;
         cameraLocked = true;
         isGrounded = true;
-        objectSelected = false;
-
-
-
-
     }
 
     //methods overwritten 

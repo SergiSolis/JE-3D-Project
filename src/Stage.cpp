@@ -47,14 +47,13 @@ void playStage::render()
 		setCamera(game->camera, player->model);
 	player->render();
 	
-	if(player->objectSelected != NULL) {
-
-		Mesh* mesh = Mesh::Get("data/box.obj");
+	if (player->currentItem != ITEM_ID::NONE) {
 		player->resultSk = player->animations[player->currentAnim]->skeleton;
 		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandIndex4", false);
 		handLocalMatrix.scale(0.5f, 0.5f, 0.5f);
-		renderMesh(GL_TRIANGLES, handLocalMatrix * player->visualModel, mesh, player->mesh->texture, player->mesh->shader, game->camera);
-		//world.static_entities.erase(world.static_entities.begin() + player->objectSelected);
+		Matrix44& actualModel = player->inventory[player->currentItem]->model;
+		actualModel = handLocalMatrix * player->visualModel;
+		player->inventory[player->currentItem]->render();
 	}
 		
 	//Draw the floor grid
@@ -86,8 +85,6 @@ void playStage::update(float seconds_elapsed)
 	Game *game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-
-	//std::cout << "IS GROUNDED: " << player->isGrounded << std::endl;
 
 	player->currentAnim = ANIM_ID::IDLE;
 
@@ -437,10 +434,7 @@ void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
 		{
 			std::cout << "Object selected: " << entity->tiling << std::endl;
-			player->objectSelected = i;
-			world.selectedEntity = entity;
-			//world.static_entities.erase(world.static_entities.begin() + i);
-			//world.static_entities.clear();
+			player->currentItem = ITEM_ID::BOX_HAND;
 			s_entities.erase(Game::instance->world.static_entities.begin() + i);
 			break;
 		}
