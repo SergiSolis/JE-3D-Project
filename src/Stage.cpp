@@ -6,10 +6,26 @@
 #include "animation.h"
 #include "input.h"
 
+void titleStage::render()
+{
+}
+
+void titleStage::update(float seconds_elapsed)
+{
+}
+
+void tutorialStage::render()
+{
+}
+
+void tutorialStage::update(float seconds_elapsed)
+{
+}
+
 void playStage::render()
 {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	// set the clear color (the background color)
@@ -27,7 +43,8 @@ void playStage::render()
 	game->camera->enable();
 
 	renderWorld();
-	setCamera(game->camera, player->model);
+	if (world.currentStage == STAGE_ID::PLAY)
+		setCamera(game->camera, player->model);
 	player->render();
 	
 	if(player->objectSelected != NULL) {
@@ -65,9 +82,9 @@ void playStage::render()
 
 void playStage::update(float seconds_elapsed)
 {
-
+	std::cout << "PLAY STAGE" << std::endl;
 	Game *game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	//std::cout << "IS GROUNDED: " << player->isGrounded << std::endl;
@@ -81,118 +98,128 @@ void playStage::update(float seconds_elapsed)
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
 
+	
+
+	float playerSpeed = 10.0f * seconds_elapsed;
+	float rotateSpeed = 120.0f * seconds_elapsed;
+	float gravity = 9.807f;
+	float jumpHeight = 5.0f;
+	float verticalSpeed;
 	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
-		player->cameraLocked = !player->cameraLocked;
-		std::cout << "cameraLocked: " << player->cameraLocked << std::endl;
+		world.currentStage = STAGE_ID::EDITOR;
 	}
-	if (player->cameraLocked)
+	if (player->firstPerson)
 	{
-		float playerSpeed = 10.0f * seconds_elapsed;
-		float rotateSpeed = 120.0f * seconds_elapsed;
-		float gravity = 9.807f;
-		float jumpHeight = 5.0f;
-		float verticalSpeed;
-
-		if (player->firstPerson)
-		{
-			player->pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
-			player->jaw -= Input::mouse_delta.x * 5.0f * seconds_elapsed;
-			Input::centerMouse();
-			SDL_ShowCursor(false);
-		}
-		else {
-			if (Input::isKeyPressed(SDL_SCANCODE_D)) player->jaw += rotateSpeed;
-			if (Input::isKeyPressed(SDL_SCANCODE_A)) player->jaw -= rotateSpeed;
-		}
-		Matrix44 playerRotation;
-		playerRotation.rotate(player->jaw * DEG2RAD, Vector3(0, 1, 0));
-		Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
-		Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
-		Vector3 jump = playerRotation.rotateVector(Vector3(0, 1, 0));
-		Vector3 playerVel;
-
-
-		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
-			playerSpeed = 20.0f * seconds_elapsed;
-		}
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) { 
-			playerVel = playerVel + (forward * playerSpeed); 
-			player->currentAnim = ANIM_ID::WALK;
-		}
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) {
-			playerVel = playerVel - (forward * playerSpeed);
-			player->currentAnim = ANIM_ID::WALK;
-		}
-		if (Input::isKeyPressed(SDL_SCANCODE_Q)) {
-			playerVel = playerVel - (right * playerSpeed);
-			player->currentAnim = ANIM_ID::WALK;
-		}
-		if (Input::isKeyPressed(SDL_SCANCODE_E)) {
-			playerVel = playerVel + (right * playerSpeed);
-			player->currentAnim = ANIM_ID::WALK;
-		}
-		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
-			player->currentAnim = ANIM_ID::RUN;
-		}
-
-		//jump
-		if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true) {
-			player->isGrounded = false;
-			//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
-			player->jumpLock = 0.3f;
-		}
-
-		if (player->jumpLock != 0.0f)
-		{
-			playerVel[1] += 0.15f;
-		}
-		if (player->isGrounded == false)
-		{
-			player->currentAnim = ANIM_ID::JUMP;
-			playerVel[1] -= seconds_elapsed * 3;
-		}
-
-
-		/*
-		if (player->isGrounded == false)
-		{
-			playerVel = playerVel - (jump * gravity * seconds_elapsed);
-		}
-		*/
-
-		if (Input::isKeyPressed(SDL_SCANCODE_G)) {
-			takeEntity(game->camera, world.static_entities);
-		}
-
-		Vector3 targetPos = player->pos + playerVel;
-		
-		player->pos = checkCollision(targetPos);
-		//player->pos = targetPos;
-
+		player->pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
+		player->jaw -= Input::mouse_delta.x * 5.0f * seconds_elapsed;
+		Input::centerMouse();
+		SDL_ShowCursor(false);
 	}
-	else
+	else {
+		player->pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) player->jaw += rotateSpeed;
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) player->jaw -= rotateSpeed;
+	}
+	Matrix44 playerRotation;
+	playerRotation.rotate(player->jaw * DEG2RAD, Vector3(0, 1, 0));
+	Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
+	Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+	Vector3 jump = playerRotation.rotateVector(Vector3(0, 1, 0));
+	Vector3 playerVel;
+
+
+	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
+		playerSpeed = 20.0f * seconds_elapsed;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_W)) { 
+		playerVel = playerVel + (forward * playerSpeed); 
+		player->currentAnim = ANIM_ID::WALK;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_S)) {
+		playerVel = playerVel - (forward * playerSpeed);
+		player->currentAnim = ANIM_ID::WALK;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_Q)) {
+		playerVel = playerVel - (right * playerSpeed);
+		player->currentAnim = ANIM_ID::WALK;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_E)) {
+		playerVel = playerVel + (right * playerSpeed);
+		player->currentAnim = ANIM_ID::WALK;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
+		player->currentAnim = ANIM_ID::RUN;
+	}
+
+	//jump
+	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true) {
+		player->isGrounded = false;
+		//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
+		player->jumpLock = 0.3f;
+	}
+
+	if (player->jumpLock != 0.0f)
 	{
-		if ((Input::mouse_state & SDL_BUTTON_LEFT)) //is left button pressed?
-		{
-			game->camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, -1.0f, 0.0f));
-			game->camera->rotate(Input::mouse_delta.y * 0.005f, game->camera->getLocalVector(Vector3(-1.0f, 0.0f, 0.0f)));
-		}
-		SDL_ShowCursor(true);
-		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
-		if (Input::isKeyPressed(SDL_SCANCODE_W)) game->camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_S)) game->camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_A)) game->camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_D)) game->camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_UP)) game->camera->move(Vector3(0.0f, 1.0f, 0.0f) * speed);
-		if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) game->camera->move(Vector3(0.0f, -1.0f, 0.0f) * speed);
-		
+		playerVel[1] += 0.15f;
+	}
+	if (player->isGrounded == false)
+	{
+		player->currentAnim = ANIM_ID::JUMP;
+		playerVel[1] -= seconds_elapsed * 3;
 	}
 
+	if (Input::isKeyPressed(SDL_SCANCODE_G)) {
+		takeEntity(game->camera, world.static_entities);
+	}
+
+	Vector3 targetPos = player->pos + playerVel;
+		
+	player->pos = checkCollision(targetPos);
+	//player->pos = targetPos;
+
+}
+
+void editorStage::render()
+{
+}
+
+void editorStage::update(float seconds_elapsed)
+{
+	std::cout << "EDITOR STAGE" << std::endl;
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
+	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
+		world.currentStage = STAGE_ID::PLAY;
+	}
+	if ((Input::mouse_state & SDL_BUTTON_LEFT)) //is left button pressed?
+	{
+		game->camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, -1.0f, 0.0f));
+		game->camera->rotate(Input::mouse_delta.y * 0.005f, game->camera->getLocalVector(Vector3(-1.0f, 0.0f, 0.0f)));
+	}
+	SDL_ShowCursor(true);
+	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
+	if (Input::isKeyPressed(SDL_SCANCODE_W)) game->camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_S)) game->camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_A)) game->camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_D)) game->camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_UP)) game->camera->move(Vector3(0.0f, 1.0f, 0.0f) * speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) game->camera->move(Vector3(0.0f, -1.0f, 0.0f) * speed);
+}
+
+void endStage::render()
+{
+}
+
+void endStage::update(float seconds_elapsed)
+{
 }
 
 void renderWorld() {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	glDisable(GL_DEPTH_TEST);
@@ -248,7 +275,7 @@ void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV) {
 void setCamera(Camera *cam, Matrix44 model)
 {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	if (player->cameraLocked)
@@ -273,8 +300,8 @@ void setCamera(Camera *cam, Matrix44 model)
 
 Vector3 checkCollision(Vector3 target)
 {
-	Game *game = Game::instance;
-	World world = game->world;
+	Game* game = Game::instance;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	Vector3 coll;
@@ -325,7 +352,7 @@ Vector3 checkCollision(Vector3 target)
 Vector3 checkCollisionBottom(Vector3 target)
 {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	Vector3 coll;
@@ -362,7 +389,7 @@ EntityMesh* rayPick(Camera* cam) {
 	Vector2 mouse = Input::mouse_position;
 
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 
 	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, game->window_width, game->window_height);
 	Vector3 rayOrigin = cam->eye;
@@ -384,7 +411,7 @@ EntityMesh* rayPick(Camera* cam) {
 
 void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 	std::vector<EntityMesh*>& s_entities = Game::instance->world.static_entities;
 
@@ -423,7 +450,7 @@ void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 
 void rotateSelected(float angleDegrees) {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityMesh* selectedEntity = world.selectedEntity;
 
 	if (selectedEntity == NULL) {

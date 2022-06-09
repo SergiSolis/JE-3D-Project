@@ -87,11 +87,8 @@ public:
 	bool cameraLocked;
 	bool mouseLocked = true;
 
-	Stage* current_stage;
-	titleStage* title;
-	tutorialStage* tutorial;
-	playStage* play;
-	endStage* end;
+	std::vector<Stage*> stages;
+	STAGE_ID currentStage;
 
 	GameMap* gamemap;
 	sPropViewData viewDatas[3];

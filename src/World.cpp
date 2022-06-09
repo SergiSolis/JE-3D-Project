@@ -7,8 +7,14 @@ void World::loadWorld() {
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
 	player = new EntityPlayer();
-	play = new playStage();
-	current_stage = play;
+
+	currentStage = STAGE_ID::PLAY;
+	stages.reserve(5);
+	stages.push_back(new titleStage());
+	stages.push_back(new tutorialStage());
+	stages.push_back(new playStage());
+	stages.push_back(new editorStage());
+	stages.push_back(new endStage());
 
 	skyModel = Matrix44();
 	skyMesh = Mesh::Get("data/cielo.ASE");

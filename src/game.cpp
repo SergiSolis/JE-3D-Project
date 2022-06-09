@@ -82,21 +82,26 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 //what to do when the image has to be draw
 void Game::render(void)
 {
-	world.current_stage->render();
+
+	if (world.currentStage == STAGE_ID::EDITOR) {
+		world.stages[STAGE_ID::PLAY]->render();
+	}
+	else {
+		world.stages[world.currentStage]->render();
+	}
 
 }
 
 void Game::update(double seconds_elapsed)
 {
-	world.current_stage->update(seconds_elapsed);
-	
+	world.stages[world.currentStage]->update(seconds_elapsed);
 }
 
 //Keyboard event handler (sync input)
 void Game::onKeyDown( SDL_KeyboardEvent event )
 {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	switch(event.keysym.sym)

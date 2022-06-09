@@ -9,6 +9,14 @@
 #include "Entity.h"
 #include "extra/bass.h"
 
+enum STAGE_ID : uint8 {
+	TITLE,
+	TUTORIAL,
+	PLAY,
+	EDITOR,
+	END
+};
+
 class Stage {
 public:
 	//Stage();
@@ -16,18 +24,18 @@ public:
 	virtual void update(float dt) {};
 };
 
+class titleStage : public Stage {
+public:
+	//titleStage();
+	virtual void render();
+	virtual void update(float dt);
+};
+
 class tutorialStage : public Stage {
 public:
 	//tutorialStage();
 	virtual void render();
 	virtual void update(float dt);
-};
-
-class titleStage : public Stage {
-public:
-	//titleStage();
-	virtual void render();
-	virtual void update(float dt) ;
 };
 
 class playStage : public Stage {
@@ -38,11 +46,18 @@ public:
 	//void loadMesh();
 };
 
+class editorStage : public Stage {
+public:
+	//titleStage();
+	virtual void render();
+	virtual void update(float dt);
+};
+
 class endStage : public Stage {
 public:
 	//endStage();
-	virtual void render() {};
-	virtual void update(float dt) {};
+	virtual void render();
+	virtual void update(float dt);
 };
 
 void renderWorld();
