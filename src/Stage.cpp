@@ -434,7 +434,15 @@ void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
 		{
 			std::cout << "Object selected: " << entity->tiling << std::endl;
-			player->currentItem = ITEM_ID::BOX_HAND;
+			if (entity->id == ENTITY_ID::WALL_ID)
+			{
+				player->currentItem = ITEM_ID::WALL_HAND;
+			}
+			else
+			{
+				player->currentItem = ITEM_ID::BOX_HAND;
+			}
+			
 			s_entities.erase(Game::instance->world.static_entities.begin() + i);
 			break;
 		}

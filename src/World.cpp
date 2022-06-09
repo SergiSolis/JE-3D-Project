@@ -66,8 +66,16 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				Matrix44 cellModel;
 				cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
 				//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
-				EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-				entities.push_back(entity);
+				if (index == 1) {
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::WALL_ID;
+					entities.push_back(entity);
+				}
+				else if (index == 2) {
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity);
+				}
 			}
 		}
 	}

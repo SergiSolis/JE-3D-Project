@@ -41,6 +41,12 @@ public:
     Matrix44 getGlobalMatrix(); //returns transform in world coordinates
 };
 
+enum ENTITY_ID : uint8 {
+    NOTHING,
+    WALL_ID,
+    BOX_ID,
+};
+
 class EntityMesh : public Entity
 {
 public:
@@ -50,14 +56,16 @@ public:
     Texture* texture;
     Shader* shader;
     float tiling;
+    ENTITY_ID id;
 
-    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f) {
+    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::NOTHING) {
         primitive = prim;
         model = new_model;
         mesh = mes;
         texture = tex;
         shader = shad;
         tiling = til;
+        id = e_id;
     }
 
     //methods overwritten 
@@ -161,12 +169,6 @@ class EntityCamera : public Entity
 {
 public:
 
-};
-
-class StaticEntities : public Entity
-{
-public:
-    std::vector<EntityMesh*> entities;
 };
 
 class EntityMeshDynamic : public EntityMesh

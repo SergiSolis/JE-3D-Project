@@ -72,8 +72,6 @@ public:
 	std::vector<EntityMesh*> static_entities;
 	std::vector<EntityMesh*> dynamic_entities;
 
-	StaticEntities* staticEntities;
-
 	EntityMesh* selectedEntity;
 
 	Mesh* mainCharacter = NULL;
