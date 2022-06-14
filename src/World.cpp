@@ -18,7 +18,7 @@ void World::loadWorld() {
 
 	skyModel = Matrix44();
 	skyMesh = Mesh::Get("data/cielo.ASE");
-	skyTex = Texture::Get("data/cielo.tga");
+	skyTex = Texture::Get("data/night.tga");
 	sky = new EntityMesh(GL_TRIANGLES, skyModel, skyMesh, skyTex, shader);
 
 
@@ -28,14 +28,20 @@ void World::loadWorld() {
 	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader, 500.0f);
 	cameraLocked = true;
 
-	viewDatas[1].mesh = Mesh::Get("data/wall.obj");
+	viewDatas[1].mesh = Mesh::Get("data/wall_d.obj");
 	viewDatas[1].texture = Texture::Get("data/color-atlas.png");
 
 	viewDatas[2].mesh = Mesh::Get("data/box.obj");
 	viewDatas[2].texture = Texture::Get("data/color-atlas.png");
 
+	viewDatas[3].mesh = Mesh::Get("data/corner.obj");
+	viewDatas[3].texture = Texture::Get("data/color-atlas.png");
+
+	viewDatas[4].mesh = Mesh::Get("data/corner_half.obj");
+	viewDatas[4].texture = Texture::Get("data/color-atlas.png");
+
 	gamemap = new GameMap();
-	gamemap = loadGameMap("data/mymap.map");
+	gamemap = loadGameMap("data/lvl1.map");
 	importMap(static_entities);
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 }
@@ -58,20 +64,31 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 		{
 			sCell& cell = gamemap->getCell(i, j);
 			int index = (int)cell.type;
-			sPropViewData& prop = viewDatas[index];
+			sPropViewData& prop = viewDatas[0];
 			if (index == 0) continue;
 			if (index == 3) {
-				player->pos = CellToWorldCenter(Vector2(i, j), 2);
+				player->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+				spawnPos = player->pos;
 			}else{
 				Matrix44 cellModel;
 				cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
+				cellModel.scale(3, 3, 3);
 				//renderMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, world.shader, game->camera);
 				if (index == 1) {
+					prop = viewDatas[1];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
 					entity->id = ENTITY_ID::WALL_ID;
 					entities.push_back(entity);
 				}
 				else if (index == 2) {
+					prop = viewDatas[1];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::WALL_ID;
+					entities.push_back(entity);
+				}
+				else if (index == 4) {
+					prop = viewDatas[2];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
 					entity->id = ENTITY_ID::BOX_ID;
 					entities.push_back(entity);
@@ -107,5 +124,11 @@ GameMap* loadGameMap(const char* filename)
 	delete[] cells; //always free any memory allocated!
 
 	return map;
+}
+
+void World::loadLevel() {
+	player->pos = spawnPos;
+	timeTrial = 10.0f;
+	player->jaw = 0;
 }
 

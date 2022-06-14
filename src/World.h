@@ -63,9 +63,6 @@ public:
 
 	float angle = 0;
 	float mouse_speed = 100.0f;
-	FBO* fbo = NULL;
-	float timeCounter = 0.0f;
-	bool startCounter = false;
 
 	EntityPlayer* player;
 
@@ -74,13 +71,7 @@ public:
 
 	EntityMesh* selectedEntity;
 
-	Mesh* mainCharacter = NULL;
-	Texture* texCharacter = NULL;
-	Matrix44 model;
-
-	Mesh* sceneMesh = NULL;
-	Texture* sceneText = NULL;
-	Matrix44 sceneModel;
+	Vector3 spawnPos;
 
 	bool cameraLocked;
 	bool mouseLocked = true;
@@ -89,9 +80,9 @@ public:
 	STAGE_ID currentStage;
 
 	GameMap* gamemap;
-	sPropViewData viewDatas[3];
-	const float tileWidth = 2.0f;
-	const float tileHeight = 2.0f;
+	sPropViewData viewDatas[5];
+	const float tileWidth = 6.0f;
+	const float tileHeight = 6.0f;
 
 	//Cielo
 	EntityMesh* sky;
@@ -110,6 +101,8 @@ public:
 	Texture* box_text;
 	Matrix44 boxModel;
 
+	float timeTrial = 50.0f;
+
 	void loadWorld();
 	void setConfiguration();
 	void saveGame();
@@ -117,8 +110,9 @@ public:
 
 	void addEntity();
 	void deleteEntity();
-
+	void loadLevel();
 };
 
 GameMap* loadGameMap(const char* filename);
+
 #endif

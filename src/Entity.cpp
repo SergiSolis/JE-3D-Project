@@ -94,8 +94,8 @@ void EntityPlayer::render() {
 	//Matrix44& neckLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Neck");
 	//neckLocalMatrix.rotate(180.0f * sin(Game::instance->time) * DEG2RAD, Vector3(0, 1, 0));
 
-	Matrix44& headLocalMatrix = resultSk.getBoneMatrix("mixamorig_Head");
-	headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
+	//Matrix44& headLocalMatrix = resultSk.getBoneMatrix("mixamorig_Head");
+	//headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
 
 	//Matrix44& RightForeArmLocalMatrix = resultSk.getBoneMatrix("mixamorig_RightForeArm");
 	//RightForeArmLocalMatrix.scale(0.0f, 0.0f, 0.0f);
@@ -176,8 +176,8 @@ void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* ani
 	//Matrix44& neckLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Neck");
 	//neckLocalMatrix.rotate(180.0f * sin(Game::instance->time) * DEG2RAD, Vector3(0, 1, 0));
 
-	//Matrix44& headLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Head");
-	//headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
+	Matrix44& headLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Head");
+	headLocalMatrix.scale(6.0f, 6.0f, 6.0f);
 
 	//Matrix44& RightForeArmLocalMatrix = resultSk.getBoneMatrix("mixamorig_RightForeArm");
 	//RightForeArmLocalMatrix.scale(0.0f, 0.0f, 0.0f);

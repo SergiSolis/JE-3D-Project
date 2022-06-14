@@ -6,6 +6,7 @@
 #include "animation.h"
 #include "input.h"
 
+
 void titleStage::render()
 {
 }
@@ -64,9 +65,14 @@ void playStage::render()
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+	
+	Vector3 playerPos = player->pos + Vector3(0, 4, 0);
+	game->camera->updateViewMatrix();
+	game->camera->updateProjectionMatrix();
+	Vector3 playerScreen = game->camera->project(playerPos, game->window_width, game->window_height);
 	Texture* texture = Texture::Get("data/fangs.png");
-	renderGUI(100.0f, 100.0f, 100.0f, 100.0f, texture, true);
+	if(playerScreen.z < 1.0f)
+		renderGUI(playerScreen.x, game->window_width - playerScreen.y, 50.0f, 50.0f, texture, true);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -74,6 +80,7 @@ void playStage::render()
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
+	drawText(2, 25, "Time trial: "  + std::to_string(world.timeTrial), Vector3(1, 1, 0), 2);
 
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
@@ -95,12 +102,15 @@ void playStage::update(float seconds_elapsed)
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
 
-	
+	world.timeTrial -= seconds_elapsed;
+	if (world.timeTrial <= 0.0f) {
+		world.currentStage = STAGE_ID::END;
+	}
 
 	float playerSpeed = 10.0f * seconds_elapsed;
 	float rotateSpeed = 120.0f * seconds_elapsed;
 	float gravity = 9.807f;
-	float jumpHeight = 5.0f;
+	float jumpHeight = 1.0f;
 	float verticalSpeed;
 	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
 		world.currentStage = STAGE_ID::EDITOR;
@@ -152,7 +162,7 @@ void playStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true) {
 		player->isGrounded = false;
 		//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
-		player->jumpLock = 0.3f;
+		player->jumpLock = 0.2f;
 	}
 
 	if (player->jumpLock != 0.0f)
@@ -208,10 +218,37 @@ void editorStage::update(float seconds_elapsed)
 
 void endStage::render()
 {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	// set the clear color (the background color)
+	glClearColor(1.0, 0.0, 1.0, 1.0);
+	// set flags
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	// Clear the window and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set the camera as default
+	game->camera->enable();
+
+	//renderWorld();
+	//swap between front buffer and back buffer
+	SDL_GL_SwapWindow(game->window);
 }
 
 void endStage::update(float seconds_elapsed)
 {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	std::cout << "END STAGE" << std::endl;
+	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
+		world.currentStage = STAGE_ID::PLAY;
+		world.loadLevel();
+	}
 }
 
 void renderWorld() {
@@ -260,7 +297,7 @@ void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV) {
 	shader->setUniform("u_time", time);
 	shader->setUniform("u_text_tiling", 1.0f);
 	Matrix44 quadModel;
-	quadModel.translate(sin(Game::instance->time ) * 20, 0, 0);
+	//quadModel.translate(sin(Game::instance->time ) * 20, 0, 0);
 	shader->setUniform("u_model", quadModel);
 	//do the draw call
 	quad.render(GL_TRIANGLES);
@@ -313,7 +350,7 @@ Vector3 checkCollision(Vector3 target)
 	{
 		Vector3 posEnt = world.static_entities[i]->model.getTranslation();
 		//std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
-		if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.5, coll, collnorm))
+		if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
 		{
 			if (player->pos.y >= coll.y)
 			{
@@ -330,7 +367,7 @@ Vector3 checkCollision(Vector3 target)
 			}
 		}
 		else {
-			if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.01, coll, collnorm))
+			if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.1, coll, collnorm))
 			{
 				//std::cout << "EO" << std::endl;
 				player->isGrounded = true;
