@@ -88,7 +88,7 @@ void playStage::render()
 
 void playStage::update(float seconds_elapsed)
 {
-	std::cout << "PLAY STAGE" << std::endl;
+	//std::cout << "PLAY STAGE" << std::endl;
 	Game *game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
@@ -135,7 +135,7 @@ void playStage::update(float seconds_elapsed)
 	Vector3 playerVel;
 
 
-	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
+	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT) && player->isGrounded == true) {
 		playerSpeed = 20.0f * seconds_elapsed;
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_W)) { 
@@ -177,6 +177,7 @@ void playStage::update(float seconds_elapsed)
 
 	if (Input::isKeyPressed(SDL_SCANCODE_G)) {
 		takeEntity(game->camera, world.static_entities);
+		checkIfFinish(game->camera);
 	}
 
 	Vector3 targetPos = player->pos + playerVel;
@@ -192,7 +193,7 @@ void editorStage::render()
 
 void editorStage::update(float seconds_elapsed)
 {
-	std::cout << "EDITOR STAGE" << std::endl;
+	//std::cout << "EDITOR STAGE" << std::endl;
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
@@ -244,7 +245,7 @@ void endStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	std::cout << "END STAGE" << std::endl;
+	//std::cout << "END STAGE" << std::endl;
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
 		world.currentStage = STAGE_ID::PLAY;
 		world.loadLevel();
@@ -262,6 +263,7 @@ void renderWorld() {
 	glEnable(GL_DEPTH_TEST);
 
 	world.ground->render();
+	world.finish->render();
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
@@ -345,41 +347,37 @@ Vector3 checkCollision(Vector3 target)
 
 	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
-
+	
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
 		Vector3 posEnt = world.static_entities[i]->model.getTranslation();
-		//std::cout << "POSITION ENTITY: X:" << posEnt.x << ", Y: " << posEnt.y << ", Z: " << posEnt.z << std::endl;
-		if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
-		{
-			if (player->pos.y >= coll.y)
+			if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, bottomCharacter, 0.1, coll, collnorm)) {
+				if (player->pos.y >= coll.y)
+				{
+					std::cout << "TOP COLLISION" << std::endl;
+					Game::instance->world.player->isGrounded = true;
+					player->isGrounded = true;
+					target.y = coll.y + 0.05f;
+					return target;
+				}
+			}
+			else if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.1, coll, collnorm))
 			{
-				target.y = coll.y + 0.05f;
-				player->isGrounded = true;
+					player->isGrounded = true;
 			}
 			else {
-				//std::cout << "COLLISION fromt" << std::endl;
+					player->isGrounded = false;
+			}
+			if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
+			{
+				std::cout << "COLLISION fromt" << std::endl;
 				pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
 				returned = player->pos - pushAway;
 				returned.y = player->pos.y;
 				return returned;
-			}
-		}
-		else {
-			if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.1, coll, collnorm))
-			{
-				//std::cout << "EO" << std::endl;
-				player->isGrounded = true;
-				//target.y = coll.y;
-			}
-			else {
-				player->isGrounded = false;
-			}
-		}
-				
+			}			
 	}
-
 	return target;
 }
 
@@ -484,6 +482,35 @@ void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 			break;
 		}
 	}
+}
+
+void checkIfFinish(Camera* cam) {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	std::vector<EntityMesh*>& s_entities = Game::instance->world.static_entities;
+
+	Vector2 mouse = Input::mouse_position;
+
+	Vector3 dir = cam->getRayDirection(mouse.x, mouse.y, game->window_width, game->window_height);
+	Vector3 rayOrigin = cam->eye;
+
+	Vector3 playerPos = player->visualModel.getTranslation();
+
+	EntityMesh* entity = Game::instance->world.finish;
+	Vector3 pos;
+	Vector3 normal;
+
+	Vector3 entityPos = entity->model.getTranslation();
+
+	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
+
+
+	if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
+	{
+		world.currentStage = STAGE_ID::END;
+	}
+	
 }
 
 

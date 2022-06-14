@@ -71,6 +71,7 @@ Vector3 checkCollisionBottom(Vector3 target);
 void addEntityInFront(Camera* cam, const char* meshName, const char* textName);
 EntityMesh* rayPick(Camera* cam);
 void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities);
+void checkIfFinish(Camera* cam);
 void rotateSelected(float angleDegrees);
 
 #endif 

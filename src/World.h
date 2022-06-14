@@ -69,6 +69,8 @@ public:
 	std::vector<EntityMesh*> static_entities;
 	std::vector<EntityMesh*> dynamic_entities;
 
+	EntityMesh* finish;
+
 	EntityMesh* selectedEntity;
 
 	Vector3 spawnPos;

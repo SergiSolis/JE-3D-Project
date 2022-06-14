@@ -91,7 +91,46 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					prop = viewDatas[2];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
 					entity->id = ENTITY_ID::BOX_ID;
+					finish = entity;
+					//entities.push_back(entity);
+				}
+				else if (index == 5) {
+					prop = viewDatas[1];
+					cellModel.translate(0, 3.0f, 0);
+					cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::BOX_ID;
 					entities.push_back(entity);
+				}
+				else if (index == 6) {
+					prop = viewDatas[2];
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity);
+				}
+				else if (index == 7) {
+					prop = viewDatas[2];
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity);
+					cellModel.translate(0, 0.8f, 0);
+					EntityMesh* entity2 = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity2->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity2);
+				}
+				else if (index == 8) {
+					prop = viewDatas[2];
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity);
+					cellModel.translate(0, 0.8f, 0);
+					EntityMesh* entity2 = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity2->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity2);
+					cellModel.translate(0, 0.8f, 0);
+					EntityMesh* entity3 = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity3->id = ENTITY_ID::BOX_ID;
+					entities.push_back(entity3);
 				}
 			}
 		}
