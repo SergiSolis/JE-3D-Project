@@ -70,6 +70,8 @@ public:
 	std::vector<EntityMesh*> dynamic_entities;
 
 	EntityMesh* finish;
+	int actualLevel;
+	bool levelDone;
 
 	EntityMesh* selectedEntity;
 
@@ -103,7 +105,7 @@ public:
 	Texture* box_text;
 	Matrix44 boxModel;
 
-	float timeTrial = 50.0f;
+	float timeTrial = 10.0f;
 
 	void loadWorld();
 	void setConfiguration();

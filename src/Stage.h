@@ -13,6 +13,7 @@ enum STAGE_ID : uint8 {
 	TITLE,
 	TUTORIAL,
 	PLAY,
+	TRANSITION,
 	EDITOR,
 	END
 };
@@ -46,9 +47,17 @@ public:
 	//void loadMesh();
 };
 
+class transitionStage : public Stage {
+public:
+	//playStage();
+	virtual void render();
+	virtual void update(float dt);
+	//void loadMesh();
+};
+
 class editorStage : public Stage {
 public:
-	//titleStage();
+	//editorStage();
 	virtual void render();
 	virtual void update(float dt);
 };

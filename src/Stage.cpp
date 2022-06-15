@@ -46,6 +46,7 @@ void playStage::render()
 	renderWorld();
 	if (world.currentStage == STAGE_ID::PLAY)
 		setCamera(game->camera, player->model);
+
 	player->render();
 	
 	if (player->currentItem != ITEM_ID::NONE) {
@@ -81,7 +82,7 @@ void playStage::render()
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	drawText(2, 25, "Time trial: "  + std::to_string(world.timeTrial), Vector3(1, 1, 0), 2);
-
+	drawText(2, 50, "Actual level: " + std::to_string(world.actualLevel), Vector3(1, 1, 0), 2);
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
 }
@@ -104,7 +105,7 @@ void playStage::update(float seconds_elapsed)
 
 	world.timeTrial -= seconds_elapsed;
 	if (world.timeTrial <= 0.0f) {
-		world.currentStage = STAGE_ID::END;
+		world.currentStage = STAGE_ID::TRANSITION;
 	}
 
 	float playerSpeed = 10.0f * seconds_elapsed;
@@ -185,6 +186,47 @@ void playStage::update(float seconds_elapsed)
 	player->pos = checkCollision(targetPos);
 	//player->pos = targetPos;
 
+}
+
+void transitionStage::render()
+{
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	// set the clear color (the background color)
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	// set flags
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	// Clear the window and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set the camera as default
+	game->camera->enable();
+
+	if (world.levelDone) {
+		drawText(80, 80, "YOU WIN THE LEVEL", Vector3(1, 1, 1), 6);
+	}
+	else {
+		drawText(80, 80, "YOU LOSE THE LEVEL", Vector3(1, 1, 1), 6);
+	}
+
+	//swap between front buffer and back buffer
+	SDL_GL_SwapWindow(game->window);
+}
+
+void transitionStage::update(float seconds_elapsed)
+{
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
+		
+		world.loadLevel();
+	}
 }
 
 void editorStage::render()
@@ -504,11 +546,11 @@ void checkIfFinish(Camera* cam) {
 	Vector3 entityPos = entity->model.getTranslation();
 
 	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
-
+	world.levelDone = true;
 
 	if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
 	{
-		world.currentStage = STAGE_ID::END;
+		world.currentStage = STAGE_ID::TRANSITION;
 	}
 	
 }

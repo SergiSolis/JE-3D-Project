@@ -9,10 +9,11 @@ void World::loadWorld() {
 	player = new EntityPlayer();
 
 	currentStage = STAGE_ID::PLAY;
-	stages.reserve(5);
+	stages.reserve(6);
 	stages.push_back(new titleStage());
 	stages.push_back(new tutorialStage());
 	stages.push_back(new playStage());
+	stages.push_back(new transitionStage());
 	stages.push_back(new editorStage());
 	stages.push_back(new endStage());
 
@@ -43,6 +44,10 @@ void World::loadWorld() {
 	gamemap = new GameMap();
 	gamemap = loadGameMap("data/lvl1.map");
 	importMap(static_entities);
+
+	actualLevel = 1;
+	levelDone = false;
+
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 }
 
@@ -166,8 +171,27 @@ GameMap* loadGameMap(const char* filename)
 }
 
 void World::loadLevel() {
-	player->pos = spawnPos;
-	timeTrial = 10.0f;
+	
+	if (levelDone) {
+		actualLevel += 1;
+
+		static_entities.clear();
+
+		//char ch = static_cast<char>(actualLevel);
+		//char* ch2 = strcat("data/lvl", &ch);
+		//const char* levelpath = strcat(ch2, ".map");
+		gamemap = loadGameMap("data/lvl2.map");
+		importMap(static_entities);
+		timeTrial = 20.0f;
+	}
+	else {
+		player->pos = spawnPos;
+		timeTrial = 10.0f;
+	}
+	levelDone = false;
+	
 	player->jaw = 0;
+
+	currentStage = STAGE_ID::PLAY;
 }
 
