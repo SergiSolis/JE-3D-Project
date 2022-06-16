@@ -157,11 +157,47 @@ public:
     void update(float dt);
 };
 
-class EntityEnemies : public Entity
+class EntityEnemy : public Entity
 {
 public:
-    EntityMesh mesh;
+    EntityMesh* mesh;
+    std::vector<Animation*> animations;
+    ANIM_ID currentAnim;
 
+    Vector3 pos;
+    Vector3 vel;
+
+    Matrix44 visualModel;
+    Skeleton resultSk;
+    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
+        //model.translate(pos.x, pos.y, pos.z);
+        Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
+        
+        animations.reserve(4);
+        animations.push_back(Animation::Get("data/enemy_idle.skanim"));
+        animations.push_back(Animation::Get("data/walk.skanim"));
+        animations.push_back(Animation::Get("data/run.skanim"));
+        animations.push_back(Animation::Get("data/jump.skanim"));
+
+        currentAnim = ANIM_ID::IDLE;
+
+        Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+        Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
+        //Mesh* playerMesh = Mesh::Get("data/skeleton.obj");
+
+        mesh = new EntityMesh(GL_TRIANGLES, model, n_mesh, tex, shader);
+
+        /*
+        pos.x = 10;
+        pos.y = 0;
+        pos.z = 10;
+        vel.x = 0;
+        vel.y = 0;
+        vel.z = 0;
+        */
+    }
+    void render();
+    void update(float dt);
 };
 
 

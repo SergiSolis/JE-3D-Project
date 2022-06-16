@@ -44,6 +44,7 @@ void playStage::render()
 	game->camera->enable();
 
 	renderWorld();
+
 	if (world.currentStage == STAGE_ID::PLAY)
 		setCamera(game->camera, player->model);
 
@@ -94,6 +95,8 @@ void playStage::update(float seconds_elapsed)
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 
+	std::cout << "Enemies:" << world.enemies.size() << std::endl;
+
 	player->currentAnim = ANIM_ID::IDLE;
 
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
@@ -110,9 +113,6 @@ void playStage::update(float seconds_elapsed)
 
 	float playerSpeed = 10.0f * seconds_elapsed;
 	float rotateSpeed = 120.0f * seconds_elapsed;
-	float gravity = 9.807f;
-	float jumpHeight = 1.0f;
-	float verticalSpeed;
 	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
 		world.currentStage = STAGE_ID::EDITOR;
 	}
@@ -306,6 +306,12 @@ void renderWorld() {
 
 	world.ground->render();
 	world.finish->render();
+
+	for (size_t i = 0; i < world.enemies.size(); i++)
+	{
+		EntityEnemy* enemy = world.enemies[i];
+		enemy->render();
+	}
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{

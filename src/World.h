@@ -67,6 +67,9 @@ public:
 	EntityPlayer* player;
 
 	std::vector<EntityMesh*> static_entities;
+
+	std::vector<EntityEnemy*> enemies;
+
 	std::vector<EntityMesh*> dynamic_entities;
 
 	EntityMesh* finish;

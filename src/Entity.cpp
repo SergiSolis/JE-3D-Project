@@ -111,8 +111,50 @@ void EntityPlayer::render() {
 	mesh->shader->setUniform("u_text_tiling", 1.0f);
 	mesh->shader->setUniform("u_model", visualModel);
 
+	//do the draw call
+	mesh->mesh->renderAnimated(mesh->primitive, &resultSk);
 
+	//disable shader
+	mesh->shader->disable();
 
+	if (!game->world.cameraLocked) {
+		mesh->mesh->renderBounding(visualModel);
+	}
+}
+
+void EntityEnemy::render() {
+	Game* game = Game::instance;
+	World world = game->world;
+
+	model = Matrix44();
+	model.translate(pos.x, pos.y, pos.z);
+	visualModel = model;
+
+	//visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+	visualModel.scale(0.02f, 0.02f, 0.02f);
+
+	assert(a_mesh != NULL, "mesh in renderMesh was null");
+	if (!mesh->shader) return;
+
+	//enable shader
+	mesh->shader->enable();
+
+	float t = fmod(Game::instance->time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	animations[currentAnim]->assignTime(t * animations[currentAnim]->duration);
+	//player->run->assignTime(t * player->run->duration);
+
+	resultSk = animations[currentAnim]->skeleton;
+
+	//upload uniforms
+	mesh->shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	mesh->shader->setUniform("u_viewprojection", game->camera->viewprojection_matrix);
+	if (mesh->texture != NULL)
+	{
+		mesh->shader->setUniform("u_texture", mesh->texture, 0);
+	}
+	mesh->shader->setUniform("u_time", time);
+	mesh->shader->setUniform("u_text_tiling", 1.0f);
+	mesh->shader->setUniform("u_model", visualModel);
 
 	//do the draw call
 	mesh->mesh->renderAnimated(mesh->primitive, &resultSk);
@@ -124,6 +166,11 @@ void EntityPlayer::render() {
 		mesh->mesh->renderBounding(visualModel);
 	}
 }
+
+void EntityEnemy::update(float dt) {
+	mesh->update(dt);
+}
+
 
 void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
 	Game* game = Game::instance;

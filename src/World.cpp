@@ -35,11 +35,8 @@ void World::loadWorld() {
 	viewDatas[2].mesh = Mesh::Get("data/box.obj");
 	viewDatas[2].texture = Texture::Get("data/color-atlas.png");
 
-	viewDatas[3].mesh = Mesh::Get("data/corner.obj");
-	viewDatas[3].texture = Texture::Get("data/color-atlas.png");
-
-	viewDatas[4].mesh = Mesh::Get("data/corner_half.obj");
-	viewDatas[4].texture = Texture::Get("data/color-atlas.png");
+	viewDatas[3].mesh = Mesh::Get("data/enemy.mesh");
+	viewDatas[3].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
 
 	gamemap = new GameMap();
 	gamemap = loadGameMap("data/lvl1.map");
@@ -100,13 +97,15 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					//entities.push_back(entity);
 				}
 				else if (index == 5) {
-					prop = viewDatas[1];
-					cellModel.translate(0, 3.0f, 0);
-					cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity);
+					prop = viewDatas[3];
+					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture);
+					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+					//entity->id = ENTITY_ID::BOX_ID;
+					enemies.push_back(enenmy);
+
 				}
+				/*
 				else if (index == 6) {
 					prop = viewDatas[2];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
@@ -137,6 +136,7 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					entity3->id = ENTITY_ID::BOX_ID;
 					entities.push_back(entity3);
 				}
+				*/
 			}
 		}
 	}
@@ -174,21 +174,28 @@ void World::loadLevel() {
 	
 	if (levelDone) {
 		actualLevel += 1;
-
+		if (actualLevel == 4) {
+			currentStage = STAGE_ID::END;
+			return;
+		}
 		static_entities.clear();
 
-		//char ch = static_cast<char>(actualLevel);
-		//char* ch2 = strcat("data/lvl", &ch);
-		//const char* levelpath = strcat(ch2, ".map");
-		gamemap = loadGameMap("data/lvl2.map");
+		std::string s = std::to_string(actualLevel);
+		char const* level = s.c_str();
+		char i_path[100] = "data/lvl";
+		char const* path = strcat(i_path, level);
+		path = strcat(i_path, ".map");
+		std::cout << path << std::endl;
+
+		gamemap = loadGameMap(path);
 		importMap(static_entities);
 		timeTrial = 20.0f;
+		levelDone = false;
 	}
 	else {
 		player->pos = spawnPos;
 		timeTrial = 10.0f;
 	}
-	levelDone = false;
 	
 	player->jaw = 0;
 
