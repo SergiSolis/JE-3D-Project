@@ -108,7 +108,7 @@ public:
 	Texture* box_text;
 	Matrix44 boxModel;
 
-	float timeTrial = 10.0f;
+	float timeTrial = 100.0f;
 
 	void loadWorld();
 	void setConfiguration();

@@ -167,6 +167,8 @@ public:
     Vector3 pos;
     Vector3 vel;
 
+    float jaw;
+
     Matrix44 visualModel;
     Skeleton resultSk;
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
@@ -195,6 +197,7 @@ public:
         vel.y = 0;
         vel.z = 0;
         */
+        jaw = 180;
     }
     void render();
     void update(float dt);

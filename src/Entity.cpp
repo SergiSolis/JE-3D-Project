@@ -128,9 +128,10 @@ void EntityEnemy::render() {
 
 	model = Matrix44();
 	model.translate(pos.x, pos.y, pos.z);
+	model.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
 	visualModel = model;
 
-	//visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+	visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
 	visualModel.scale(0.02f, 0.02f, 0.02f);
 
 	assert(a_mesh != NULL, "mesh in renderMesh was null");

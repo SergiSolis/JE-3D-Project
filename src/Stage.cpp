@@ -186,6 +186,8 @@ void playStage::update(float seconds_elapsed)
 	player->pos = checkCollision(targetPos);
 	//player->pos = targetPos;
 
+	orientationEnemies(seconds_elapsed);
+
 }
 
 void transitionStage::render()
@@ -574,4 +576,41 @@ void rotateSelected(float angleDegrees) {
 		std::cout << "aaaaaa: " << std::endl;
 	}
 	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
+}
+
+void orientationEnemies(float seconds_elapsed) {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	for (size_t i = 0; i < world.enemies.size(); i++)
+	{
+		EntityEnemy* enemy = world.enemies[i];
+		Matrix44 enemyModel = enemy->model;
+		Vector3 side = enemyModel.rotateVector(Vector3(1, 0, 0)).normalize();
+		Vector3 forward = enemyModel.rotateVector(Vector3(0, 0, -1)).normalize();
+
+		Vector3 toTarget = player->pos - enemy->pos;
+		float dist = toTarget.length();
+		toTarget.normalize();
+
+		float sideDot = side.dot(toTarget);
+		float forwardDot = forward.dot(toTarget);
+
+		if (forwardDot < 0.98f)
+		{
+			enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
+		}
+		/*
+		if (dist > 4.0f)
+		{
+			enemy->pos = enemy->pos + (forward * 10.0f * seconds_elapsed);
+		}
+		*/
+
+	}
+}
+
+float sign(float value) {
+	return value >= 0.0f ? 1.0f : -1.0f;
 }

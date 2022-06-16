@@ -83,4 +83,8 @@ void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities);
 void checkIfFinish(Camera* cam);
 void rotateSelected(float angleDegrees);
 
+void orientationEnemies(float seconds_elapsed);
+
+float sign(float value);
+
 #endif 

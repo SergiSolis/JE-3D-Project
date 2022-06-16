@@ -179,6 +179,7 @@ void World::loadLevel() {
 			return;
 		}
 		static_entities.clear();
+		enemies.clear();
 
 		std::string s = std::to_string(actualLevel);
 		char const* level = s.c_str();
