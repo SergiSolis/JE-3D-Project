@@ -95,7 +95,7 @@ void playStage::update(float seconds_elapsed)
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 
-	std::cout << "Enemies:" << world.enemies.size() << std::endl;
+	//std::cout << "Enemies:" << world.enemies.size() << std::endl;
 
 	player->currentAnim = ANIM_ID::IDLE;
 
@@ -313,6 +313,14 @@ void renderWorld() {
 	{
 		EntityEnemy* enemy = world.enemies[i];
 		enemy->render();
+		enemy->resultSk = enemy->animations[enemy->currentAnim]->skeleton;
+		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
+		handLocalMatrix.rotate(80 * DEG2RAD, Vector3(1, 0, 0));
+		handLocalMatrix.rotate(100* DEG2RAD, Vector3(0, 1, 0));
+		handLocalMatrix.translateGlobal(20, 0, 20);
+		Matrix44& actualModel = enemy->sword->model;
+		actualModel = handLocalMatrix * enemy->visualModel;
+		enemy->sword->render();
 	}
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
@@ -398,6 +406,13 @@ Vector3 checkCollision(Vector3 target)
 	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
 	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
 	
+	for (size_t i = 0; i < world.enemies.size(); i++)
+	{
+		if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 1, coll, collnorm)) {
+			Game::instance->world.currentStage = STAGE_ID::TRANSITION;
+		}
+	}
+
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
 		Vector3 posEnt = world.static_entities[i]->model.getTranslation();

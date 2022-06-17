@@ -171,15 +171,18 @@ public:
 
     Matrix44 visualModel;
     Skeleton resultSk;
+
+    EntityMesh* sword;
+
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
         //model.translate(pos.x, pos.y, pos.z);
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
         animations.reserve(4);
+        animations.push_back(Animation::Get("data/sword_idle.skanim"));
         animations.push_back(Animation::Get("data/enemy_idle.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
-        animations.push_back(Animation::Get("data/jump.skanim"));
 
         currentAnim = ANIM_ID::IDLE;
 
@@ -188,6 +191,7 @@ public:
         //Mesh* playerMesh = Mesh::Get("data/skeleton.obj");
 
         mesh = new EntityMesh(GL_TRIANGLES, model, n_mesh, tex, shader);
+        sword = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), shader);
 
         /*
         pos.x = 10;
