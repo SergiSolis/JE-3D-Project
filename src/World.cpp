@@ -38,6 +38,9 @@ void World::loadWorld() {
 	viewDatas[3].mesh = Mesh::Get("data/enemy.mesh");
 	viewDatas[3].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
 
+	viewDatas[4].mesh = Mesh::Get("data/chest.obj");
+	viewDatas[4].texture = Texture::Get("data/color-atlas.png");
+
 	gamemap = new GameMap();
 	gamemap = loadGameMap("data/lvl1.map");
 	importMap(static_entities);
@@ -103,6 +106,14 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 					//entity->id = ENTITY_ID::BOX_ID;
 					enemies.push_back(enenmy);
+
+				}
+				else if (index == 6) {
+					prop = viewDatas[4];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::WALL_ID;
+					entities.push_back(entity);
 
 				}
 				/*
@@ -198,6 +209,8 @@ void World::loadLevel() {
 		timeTrial = 10.0f;
 	}
 	
+	player->hearts = 3;
+	player->hitTimer = 0.0f;
 	player->jaw = 0;
 
 	currentStage = STAGE_ID::PLAY;

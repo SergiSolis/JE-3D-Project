@@ -105,6 +105,9 @@ public:
     float jaw;
     float pitch;
 
+    int hearts;
+    float hitTimer;
+
     Matrix44 visualModel;
     Skeleton resultSk;
 
@@ -146,6 +149,10 @@ public:
         jaw = 0;
         jumpLock = 0.0f;
 
+        hearts = 3;
+
+        hitTimer = 0.0f;
+
         firstPerson = false;
         cameraLocked = true;
         isGrounded = true;
@@ -175,7 +182,6 @@ public:
     EntityMesh* sword;
 
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
-        //model.translate(pos.x, pos.y, pos.z);
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
         animations.reserve(4);

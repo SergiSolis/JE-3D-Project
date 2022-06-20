@@ -87,7 +87,7 @@ public:
 	STAGE_ID currentStage;
 
 	GameMap* gamemap;
-	sPropViewData viewDatas[5];
+	sPropViewData viewDatas[6];
 	const float tileWidth = 6.0f;
 	const float tileHeight = 6.0f;
 
@@ -108,7 +108,7 @@ public:
 	Texture* box_text;
 	Matrix44 boxModel;
 
-	float timeTrial = 100.0f;
+	float timeTrial = 10.0f;
 
 	void loadWorld();
 	void setConfiguration();

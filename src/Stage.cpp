@@ -80,6 +80,24 @@ void playStage::render()
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
+	//RENDER ALL GUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	Texture* heartTex = Texture::Get("data/heart.png");
+	
+	for (size_t i = 0; i < player->hearts; i++)
+	{
+		renderGUI(30 + 50*i, 100, 100.0f, 100.0f, heartTex, true);
+	}
+	
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	drawText(2, 25, "Time trial: "  + std::to_string(world.timeTrial), Vector3(1, 1, 0), 2);
@@ -101,13 +119,13 @@ void playStage::update(float seconds_elapsed)
 
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
-	player->jumpLock = max(0.0f, player->jumpLock - (seconds_elapsed));
-
+	player->jumpLock = max(0.0f, player->jumpLock - seconds_elapsed);
+	player->hitTimer = max(0.0f, player->hitTimer - seconds_elapsed);
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
 
 	world.timeTrial -= seconds_elapsed;
-	if (world.timeTrial <= 0.0f) {
+	if (world.timeTrial <= 0.0f || player->hearts <= 0) {
 		world.currentStage = STAGE_ID::TRANSITION;
 	}
 
@@ -179,6 +197,14 @@ void playStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_G)) {
 		takeEntity(game->camera, world.static_entities);
 		checkIfFinish(game->camera);
+	}
+
+	if (Input::isKeyPressed(SDL_SCANCODE_U)) {
+		for (size_t i = 0; i < world.enemies.size(); i++)
+		{
+			world.enemies[i]->sword->model.translateGlobal(10, 0, 0);
+		}
+		
 	}
 
 	Vector3 targetPos = player->pos + playerVel;
@@ -309,6 +335,12 @@ void renderWorld() {
 	world.ground->render();
 	world.finish->render();
 
+	for (size_t i = 0; i < world.static_entities.size(); i++)
+	{
+		EntityMesh* entity = world.static_entities[i];
+		entity->render();
+	}
+
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
 		EntityEnemy* enemy = world.enemies[i];
@@ -316,17 +348,36 @@ void renderWorld() {
 		enemy->resultSk = enemy->animations[enemy->currentAnim]->skeleton;
 		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
 		handLocalMatrix.rotate(80 * DEG2RAD, Vector3(1, 0, 0));
-		handLocalMatrix.rotate(100* DEG2RAD, Vector3(0, 1, 0));
+		handLocalMatrix.rotate(100 * DEG2RAD, Vector3(0, 1, 0));
 		handLocalMatrix.translateGlobal(20, 0, 20);
 		Matrix44& actualModel = enemy->sword->model;
 		actualModel = handLocalMatrix * enemy->visualModel;
 		enemy->sword->render();
-	}
 
-	for (size_t i = 0; i < world.static_entities.size(); i++)
-	{
-		EntityMesh* entity = world.static_entities[i];
-		entity->render();
+		//RENDER ALL GUI
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		
+		Vector3 toTarget = player->pos - enemy->pos;
+		float dist = toTarget.length();
+
+		//Vector3 enemyPos = enemy->pos + Vector3(0, 4, 0);
+		Matrix44 ePos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * enemy->visualModel;
+		Vector3 enemyPos = ePos * Vector3(0, 1, 0);
+		enemyPos = enemyPos + Vector3(0, 2, 0);
+		//Vector3 enemyPos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * Vector3(0, 2, 0);
+		game->camera->updateViewMatrix();
+		game->camera->updateProjectionMatrix();
+		Vector3 playerScreen = game->camera->project(enemyPos, game->window_width, game->window_height);
+		Texture* texture = Texture::Get("data/fangs.png");
+		if (playerScreen.z < 1.0f)
+			renderGUI(playerScreen.x, game->window_height - playerScreen.y, 50.0f - dist, 50.0f - dist, texture, true);
+
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
 	}
 }
 
@@ -408,8 +459,11 @@ Vector3 checkCollision(Vector3 target)
 	
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
-		if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 1, coll, collnorm)) {
-			Game::instance->world.currentStage = STAGE_ID::TRANSITION;
+		//if (Mesh::Get("data/sword.obj")->testSphereCollision(world.enemies[i]->sword->model, centerCharacter, 1, coll, collnorm)) {
+		if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 1, coll, collnorm) && player->hitTimer == 0.0f) {
+			player->hitTimer = 5.0f;
+			player->hearts -= 1;
+			//Game::instance->world.currentStage = STAGE_ID::TRANSITION;
 		}
 	}
 
