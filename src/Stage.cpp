@@ -195,7 +195,7 @@ void playStage::update(float seconds_elapsed)
 	}
 
 	if (Input::isKeyPressed(SDL_SCANCODE_G)) {
-		takeEntity(game->camera, world.static_entities);
+		//takeEntity(game->camera, world.static_entities);
 		checkIfFinish(game->camera);
 	}
 
@@ -212,7 +212,7 @@ void playStage::update(float seconds_elapsed)
 	player->pos = checkCollision(targetPos);
 	//player->pos = targetPos;
 
-	orientationEnemies(seconds_elapsed);
+	handleEnemies(seconds_elapsed);
 
 }
 
@@ -352,6 +352,10 @@ void renderWorld() {
 		handLocalMatrix.translateGlobal(20, 0, 20);
 		Matrix44& actualModel = enemy->sword->model;
 		actualModel = handLocalMatrix * enemy->visualModel;
+		enemy->swordModel = actualModel;
+		enemy->swordModel.scale(80.0f, 80.0f, 80.0f);
+		enemy->swordModel.translateGlobal(-0.5, 0, 0);
+		enemy->sword->mesh->renderBounding(enemy->swordModel);
 		enemy->sword->render();
 
 		//RENDER ALL GUI
@@ -459,8 +463,8 @@ Vector3 checkCollision(Vector3 target)
 	
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
-		//if (Mesh::Get("data/sword.obj")->testSphereCollision(world.enemies[i]->sword->model, centerCharacter, 1, coll, collnorm)) {
-		if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 1, coll, collnorm) && player->hitTimer == 0.0f) {
+		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.5, coll, collnorm) && player->hitTimer == 0.0f) {
+		//if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 1, coll, collnorm) && player->hitTimer == 0.0f) {
 			player->hitTimer = 5.0f;
 			player->hearts -= 1;
 			//Game::instance->world.currentStage = STAGE_ID::TRANSITION;
@@ -623,10 +627,11 @@ void checkIfFinish(Camera* cam) {
 	Vector3 entityPos = entity->model.getTranslation();
 
 	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
-	world.levelDone = true;
+	
 
 	if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
 	{
+		world.levelDone = true;
 		world.currentStage = STAGE_ID::TRANSITION;
 	}
 	
@@ -647,7 +652,7 @@ void rotateSelected(float angleDegrees) {
 	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
 }
 
-void orientationEnemies(float seconds_elapsed) {
+void handleEnemies(float seconds_elapsed) {
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
@@ -676,7 +681,20 @@ void orientationEnemies(float seconds_elapsed) {
 			enemy->pos = enemy->pos + (forward * 10.0f * seconds_elapsed);
 		}
 		*/
+		if (dist < 6.0f || enemy->markedTarget)
+		{
+			enemy->currentAnim = ANIM_ID::WALK;
+			enemy->markedTarget = true;
+			if (dist > 3.0f){
+				enemy->pos = enemy->pos + (forward * 3.0f * seconds_elapsed);
+			}
 
+		}
+		else
+		{
+			enemy->currentAnim = ANIM_ID::IDLE;
+		}
+		
 	}
 }
 

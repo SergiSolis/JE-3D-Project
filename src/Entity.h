@@ -177,16 +177,19 @@ public:
     float jaw;
 
     Matrix44 visualModel;
+    Matrix44 swordModel;
     Skeleton resultSk;
 
     EntityMesh* sword;
+
+    bool markedTarget;
 
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
         animations.reserve(4);
         animations.push_back(Animation::Get("data/sword_idle.skanim"));
-        animations.push_back(Animation::Get("data/enemy_idle.skanim"));
+        animations.push_back(Animation::Get("data/attack.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
 
@@ -208,6 +211,7 @@ public:
         vel.z = 0;
         */
         jaw = 180;
+        markedTarget = false;
     }
     void render();
     void update(float dt);
