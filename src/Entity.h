@@ -57,6 +57,8 @@ public:
     Shader* shader;
     float tiling;
     ENTITY_ID id;
+    bool coverFlag;
+    bool collision;
 
     EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::NOTHING) {
         primitive = prim;
@@ -66,6 +68,8 @@ public:
         shader = shad;
         tiling = til;
         id = e_id;
+        coverFlag = false;
+        collision = false;
     }
 
     //methods overwritten 
@@ -98,6 +102,8 @@ public:
     bool firstPerson;
     bool cameraLocked;
     bool isGrounded;
+
+    bool walkingBackwards;
 
     Vector3 pos;
     Vector3 vel;
@@ -156,6 +162,7 @@ public:
         firstPerson = false;
         cameraLocked = true;
         isGrounded = true;
+        walkingBackwards = false;
     }
 
     //methods overwritten 
@@ -183,6 +190,7 @@ public:
     EntityMesh* sword;
 
     bool markedTarget;
+    int hearts;
 
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
@@ -212,6 +220,7 @@ public:
         */
         jaw = 180;
         markedTarget = false;
+        hearts = 3;
     }
     void render();
     void update(float dt);

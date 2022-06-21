@@ -110,6 +110,8 @@ public:
 
 	float timeTrial = 100.0f;
 
+	bool sPressed = false;
+
 	void loadWorld();
 	void setConfiguration();
 	void saveGame();

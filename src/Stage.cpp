@@ -159,11 +159,17 @@ void playStage::update(float seconds_elapsed)
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_W)) { 
 		playerVel = playerVel + (forward * playerSpeed); 
+		player->walkingBackwards = false;
 		player->currentAnim = ANIM_ID::WALK;
+		world.sPressed = false;
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_S)) {
 		playerVel = playerVel - (forward * playerSpeed);
+		//player->model.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+		player->walkingBackwards = true;
 		player->currentAnim = ANIM_ID::WALK;
+		world.sPressed = true;
+
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_Q)) {
 		playerVel = playerVel - (right * playerSpeed);
@@ -358,15 +364,15 @@ void renderWorld() {
 		enemy->sword->mesh->renderBounding(enemy->swordModel);
 		enemy->sword->render();
 
+		Vector3 toTarget = player->pos - enemy->pos;
+		float dist = toTarget.length();
+
 		//RENDER ALL GUI
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
-		Vector3 toTarget = player->pos - enemy->pos;
-		float dist = toTarget.length();
-
 		//Vector3 enemyPos = enemy->pos + Vector3(0, 4, 0);
 		Matrix44 ePos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * enemy->visualModel;
 		Vector3 enemyPos = ePos * Vector3(0, 1, 0);
@@ -375,9 +381,19 @@ void renderWorld() {
 		game->camera->updateViewMatrix();
 		game->camera->updateProjectionMatrix();
 		Vector3 playerScreen = game->camera->project(enemyPos, game->window_width, game->window_height);
-		Texture* texture = Texture::Get("data/fangs.png");
-		if (playerScreen.z < 1.0f)
-			renderGUI(playerScreen.x, game->window_height - playerScreen.y, 50.0f - dist, 50.0f - dist, texture, true);
+
+		Texture* heartTex = Texture::Get("data/heart.png");
+
+		for (size_t i = 0; i < enemy->hearts; i++)
+		{
+			//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
+			if (dist < 6.0f || enemy->markedTarget)
+			{
+				if (playerScreen.z < 1.0f)
+					renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 50.0f, 50.0f, heartTex, true);
+			}
+			
+		}
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
@@ -426,6 +442,8 @@ void setCamera(Camera *cam, Matrix44 model)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
+	Vector3 bottomCharacter = Vector3(player->pos.x, player->pos.y - 5.0f, player->pos.z);
+	bottomCharacter = game->camera->project(bottomCharacter, game->window_width, game->window_height);
 
 	if (player->cameraLocked)
 	{
@@ -441,6 +459,37 @@ void setCamera(Camera *cam, Matrix44 model)
 			center = eye + camModel.rotateVector(Vector3(0.0f, 0.0f, -1.0f));
 			up = camModel.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
 		}
+
+		Vector3 dir = cam->getRayDirection(bottomCharacter.x, bottomCharacter.y, game->window_width, game->window_height);
+		Vector3 rayOrigin = cam->eye;
+
+		for (size_t i = 0; i < world.static_entities.size(); i++)
+		{
+			EntityMesh* entity = world.static_entities[i];
+			Vector3 pos;
+			Vector3 normal;
+			//if ((entity->collision))
+			if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (world.sPressed))
+			{
+				//eye = model * Vector3(0.0f, 10.0f, 2.0f);
+				//entity->coverFlag = true;
+				eye = model * Vector3(0.0f, 6.0f, -4.0f);
+				center = model * Vector3(0.0f, -2.0f, 10.0f);
+			}
+			/*
+			else {
+				entity->coverFlag = false;
+			}
+			*/
+			/*
+			if (cam->eye.distance(world.static_entities[i]->getPosition()) < cam->eye.distance(player->pos) && (world.static_entities[i]->getPosition().z > player->pos.z))
+			{
+				eye = model * Vector3(0.0f, 10.0f, 2.0f);
+			}
+			*/
+
+		}
+
 		cam->lookAt(eye, center, up);
 	}
 	
@@ -494,6 +543,9 @@ Vector3 checkCollision(Vector3 target)
 			if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
 			{
 				std::cout << "COLLISION fromt" << std::endl;
+
+				world.static_entities[i]->collision = true;
+
 				pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
 				returned = player->pos - pushAway;

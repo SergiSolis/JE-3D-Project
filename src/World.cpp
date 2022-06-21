@@ -207,6 +207,10 @@ void World::loadLevel() {
 	else {
 		player->pos = spawnPos;
 		timeTrial = 10.0f;
+		for (size_t i = 0; i < enemies.size(); i++)
+		{
+			enemies[i]->markedTarget = false;
+		}
 	}
 	
 	player->hearts = 3;

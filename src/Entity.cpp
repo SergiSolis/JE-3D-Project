@@ -11,6 +11,10 @@
 
 #include <cmath>
 
+Vector3 Entity::getPosition() {
+	return model.getTranslation();
+}
+
 void EntityMesh::render() {
 	Game* game = Game::instance;
 	World world = game->world;
@@ -20,7 +24,7 @@ void EntityMesh::render() {
 	}
 	assert(mesh != NULL, "mesh in renderMesh was null");
 	if (!shader) return;
-
+	if (coverFlag) return;
 	//enable shader
 	shader->enable();
 
@@ -74,7 +78,10 @@ void EntityPlayer::render() {
 	model.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
 	visualModel = model;
 
-	visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+	if (!walkingBackwards)
+	{
+		visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+	}
 	visualModel.scale(0.01f, 0.01f, 0.01f);
 
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
