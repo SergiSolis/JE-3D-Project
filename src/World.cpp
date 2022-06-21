@@ -41,11 +41,13 @@ void World::loadWorld() {
 	viewDatas[4].mesh = Mesh::Get("data/chest.obj");
 	viewDatas[4].texture = Texture::Get("data/color-atlas.png");
 
+	actualLevel = 1;
+
 	gamemap = new GameMap();
 	gamemap = loadGameMap("data/lvl1.map");
 	importMap(static_entities);
+	unifyCollidableEntities();
 
-	actualLevel = 1;
 	levelDone = false;
 
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
@@ -104,16 +106,17 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
 					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+					enenmy->spawnPos = enenmy->pos;
 					//entity->id = ENTITY_ID::BOX_ID;
 					enemies.push_back(enenmy);
 
 				}
 				else if (index == 6) {
-					prop = viewDatas[4];
+					//prop = viewDatas[4];
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
-					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::WALL_ID;
-					entities.push_back(entity);
+					EntityChest* entity = new EntityChest(cellModel, actualLevel);
+					//entity->id = ENTITY_ID::WALL_ID;
+					chests.push_back(entity);
 
 				}
 				/*
@@ -153,6 +156,23 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 	}
 }
 
+void  World::unifyCollidableEntities() {
+	for (size_t i = 0; i < static_entities.size(); i++)
+	{
+		EntityMesh* entity = static_entities[i];
+		collidable_entities.push_back(entity);
+	}
+	for (size_t i = 0; i < chests.size(); i++)
+	{
+		EntityMesh* entity = chests[i]->mesh;
+		collidable_entities.push_back(entity);
+	}
+	for (size_t i = 0; i < enemies.size(); i++)
+	{
+		//EntityMesh* entity = enemies[i]->mesh;
+		//collidable_entities.push_back(entity);
+	}
+}
 
 GameMap* loadGameMap(const char* filename)
 {
@@ -210,6 +230,7 @@ void World::loadLevel() {
 		for (size_t i = 0; i < enemies.size(); i++)
 		{
 			enemies[i]->markedTarget = false;
+			enemies[i]->pos = enemies[i]->spawnPos;
 		}
 	}
 	

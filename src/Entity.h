@@ -85,7 +85,7 @@ enum ANIM_ID: uint8 {
 };
 
 enum ITEM_ID : uint8 {
-    BOX_HAND,
+    SWORD,
     WALL_HAND,
     NONE
 };
@@ -95,6 +95,7 @@ class EntityPlayer : public Entity
 public:
     EntityMesh* mesh;
     std::vector<EntityMesh*> inventory;
+    Matrix44 swordModel;
     ITEM_ID currentItem;
 
     std::vector<Animation*> animations;
@@ -123,16 +124,16 @@ public:
         playerModel.translate(pos.x, pos.y, pos.z);
         playerModel.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
 
-        currentItem = ITEM_ID::NONE;
+        currentItem = ITEM_ID::SWORD;
 
         inventory.reserve(2);
-        EntityMesh* entityBox = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/box.obj"), Texture::Get("data/color-atlas.png"), shader);
-        EntityMesh* entityWall = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/wall.obj"), Texture::Get("data/color-atlas.png"), shader);
+        EntityMesh* entityBox = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), shader);
+        //EntityMesh* entityWall = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/wall.obj"), Texture::Get("data/color-atlas.png"), shader);
         inventory.push_back(entityBox);
-        inventory.push_back(entityWall);
+        //inventory.push_back(entityWall);
         
         animations.reserve(4);
-        animations.push_back(Animation::Get("data/idle.skanim"));
+        animations.push_back(Animation::Get("data/sword_idle.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
         animations.push_back(Animation::Get("data/jump.skanim"));
@@ -181,6 +182,8 @@ public:
     Vector3 pos;
     Vector3 vel;
 
+    Vector3 spawnPos;
+
     float jaw;
 
     Matrix44 visualModel;
@@ -226,6 +229,24 @@ public:
     void update(float dt);
 };
 
+class EntityChest : public Entity
+{
+public:
+    EntityMesh* mesh;
+    EntityMesh* content;
+
+    EntityChest(Matrix44 model, int actualLevel) {
+        mesh = new EntityMesh(GL_TRIANGLES, model, Mesh::Get("data/chest.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs"));
+        mesh->model = model;
+        if (actualLevel == 1)
+        {
+            content = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"));
+        }
+    }
+    //methods overwritten 
+    void render();
+    void update(float dt);
+};
 
 class EntityCamera : public Entity
 {

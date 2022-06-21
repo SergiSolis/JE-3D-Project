@@ -52,10 +52,19 @@ void playStage::render()
 	
 	if (player->currentItem != ITEM_ID::NONE) {
 		player->resultSk = player->animations[player->currentAnim]->skeleton;
-		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandIndex4", false);
-		handLocalMatrix.scale(0.5f, 0.5f, 0.5f);
+		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
+		handLocalMatrix.rotate(120 * DEG2RAD, Vector3(1, 0, 0));
+		handLocalMatrix.rotate(100 * DEG2RAD, Vector3(0, 1, 0));
+		handLocalMatrix.translateGlobal(-10, 0, 0);
 		Matrix44& actualModel = player->inventory[player->currentItem]->model;
 		actualModel = handLocalMatrix * player->visualModel;
+		
+		player->inventory[player->currentItem]->render();
+
+		player->swordModel = actualModel;
+		player->swordModel.scale(80.0f, 80.0f, 80.0f);
+		//player->swordModel.translateGlobal(-0.5, 0, 0);
+		player->inventory[player->currentItem]->mesh->renderBounding(player->swordModel);
 		player->inventory[player->currentItem]->render();
 	}
 		
@@ -201,7 +210,7 @@ void playStage::update(float seconds_elapsed)
 	}
 
 	if (Input::isKeyPressed(SDL_SCANCODE_G)) {
-		//takeEntity(game->camera, world.static_entities);
+		takeEntity(game->camera);
 		checkIfFinish(game->camera);
 	}
 
@@ -344,6 +353,12 @@ void renderWorld() {
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
 		EntityMesh* entity = world.static_entities[i];
+		entity->render();
+	}
+
+	for (size_t i = 0; i < world.chests.size(); i++)
+	{
+		EntityChest* entity = world.chests[i];
 		entity->render();
 	}
 
@@ -520,10 +535,10 @@ Vector3 checkCollision(Vector3 target)
 		}
 	}
 
-	for (size_t i = 0; i < world.static_entities.size(); i++)
+	for (size_t i = 0; i < world.collidable_entities.size(); i++)
 	{
-		Vector3 posEnt = world.static_entities[i]->model.getTranslation();
-			if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, bottomCharacter, 0.1, coll, collnorm)) {
+		Vector3 posEnt = world.collidable_entities[i]->model.getTranslation();
+			if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, bottomCharacter, 0.1, coll, collnorm)) {
 				if (player->pos.y >= coll.y)
 				{
 					std::cout << "TOP COLLISION" << std::endl;
@@ -540,11 +555,11 @@ Vector3 checkCollision(Vector3 target)
 			else {
 					player->isGrounded = false;
 			}
-			if (world.static_entities[i]->mesh->testSphereCollision(world.static_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
+			if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
 			{
 				std::cout << "COLLISION fromt" << std::endl;
 
-				world.static_entities[i]->collision = true;
+				world.collidable_entities[i]->collision = true;
 
 				pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
@@ -556,20 +571,35 @@ Vector3 checkCollision(Vector3 target)
 	return target;
 }
 
-Vector3 checkCollisionBottom(Vector3 target)
+Vector3 enemyCollision(EntityEnemy* enemy , Vector3 target)
 {
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 
 	Vector3 coll;
-	Vector3 coll2;
 	Vector3 collnorm;
+	Vector3 pushAway;
+	Vector3 returned;
 
-	Vector3 bottomCharacter = target + Vector3(0.0f, 0.0f, 0.0f);
+	Vector3 centerCharacter = target + Vector3(0.0f, 1.0f, 0.0f);
 
+	for (size_t i = 0; i < world.collidable_entities.size(); i++)
+	{
+		Vector3 posEnt = world.collidable_entities[i]->model.getTranslation();
+		if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
+		{
+			std::cout << "COLLISION fromt" << std::endl;
 
+			world.collidable_entities[i]->collision = true;
 
+			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+
+			returned = enemy->pos - pushAway;
+			returned.y = enemy->pos.y;
+			return returned;
+		}
+	}
 	return target;
 }
 
@@ -616,7 +646,7 @@ EntityMesh* rayPick(Camera* cam) {
 	return world.selectedEntity;
 }
 
-void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
+void takeEntity(Camera* cam) {
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
@@ -630,30 +660,24 @@ void takeEntity(Camera* cam, std::vector<EntityMesh*>& entities) {
 	Vector3 playerPos = player->visualModel.getTranslation();
 	
 
-	for (size_t i = 0; i < Game::instance->world.static_entities.size(); i++)
+	for (size_t i = 0; i < Game::instance->world.chests.size(); i++)
 	{
-		EntityMesh* entity = Game::instance->world.static_entities[i];
+		EntityMesh* chest = world.chests[i]->mesh;
+		EntityMesh* content = world.chests[i]->content;
 		Vector3 pos;
 		Vector3 normal;
 
-		Vector3 entityPos = entity->model.getTranslation();
+		Vector3 entityPos = chest->model.getTranslation();
 
 		//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
 		
 
-		if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
+		if (chest->mesh->testRayCollision(chest->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 3.0f))
 		{
-			std::cout << "Object selected: " << entity->tiling << std::endl;
-			if (entity->id == ENTITY_ID::WALL_ID)
-			{
-				player->currentItem = ITEM_ID::WALL_HAND;
-			}
-			else
-			{
-				player->currentItem = ITEM_ID::BOX_HAND;
-			}
-			
-			s_entities.erase(Game::instance->world.static_entities.begin() + i);
+			std::cout << "Object selected: " << std::endl;
+			player->inventory.push_back(content);
+			player->currentItem = ITEM_ID::SWORD;
+			//s_entities.erase(Game::instance->world.static_entities.begin() + i);
 			break;
 		}
 	}
@@ -738,7 +762,8 @@ void handleEnemies(float seconds_elapsed) {
 			enemy->currentAnim = ANIM_ID::WALK;
 			enemy->markedTarget = true;
 			if (dist > 3.0f){
-				enemy->pos = enemy->pos + (forward * 3.0f * seconds_elapsed);
+				Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
+				enemy->pos = enemyCollision(enemy, targetPos);
 			}
 
 		}

@@ -67,10 +67,11 @@ public:
 	EntityPlayer* player;
 
 	std::vector<EntityMesh*> static_entities;
+	std::vector<EntityChest*> chests;
 
 	std::vector<EntityEnemy*> enemies;
 
-	std::vector<EntityMesh*> dynamic_entities;
+	std::vector<EntityMesh*> collidable_entities;
 
 	EntityMesh* finish;
 	int actualLevel;
@@ -116,7 +117,7 @@ public:
 	void setConfiguration();
 	void saveGame();
 	void importMap(std::vector<EntityMesh*>& entities);
-
+	void unifyCollidableEntities();
 	void addEntity();
 	void deleteEntity();
 	void loadLevel();

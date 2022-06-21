@@ -71,7 +71,7 @@ void EntityPlayer::checkIsGrounded() {
 
 void EntityPlayer::render() {
 	Game* game = Game::instance;
-	World world = game->world;
+	World& world = game->world;
 
 	model = Matrix44();
 	model.translate(pos.x, pos.y, pos.z);
@@ -141,6 +141,8 @@ void EntityEnemy::render() {
 	visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
 	visualModel.scale(0.02f, 0.02f, 0.02f);
 
+	mesh->model = model;
+
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
 	if (!mesh->shader) return;
 
@@ -179,6 +181,13 @@ void EntityEnemy::update(float dt) {
 	mesh->update(dt);
 }
 
+void EntityChest::render() {
+	mesh->render();
+}
+
+void EntityChest::update(float dt) {
+	mesh->update(dt);
+}
 
 void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
 	Game* game = Game::instance;
