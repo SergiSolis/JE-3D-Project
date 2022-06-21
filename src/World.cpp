@@ -211,6 +211,7 @@ void World::loadLevel() {
 		}
 		static_entities.clear();
 		enemies.clear();
+		collidable_entities.clear();
 
 		std::string s = std::to_string(actualLevel);
 		char const* level = s.c_str();
@@ -221,6 +222,7 @@ void World::loadLevel() {
 
 		gamemap = loadGameMap(path);
 		importMap(static_entities);
+		unifyCollidableEntities();
 		timeTrial = 20.0f;
 		levelDone = false;
 	}
@@ -231,6 +233,9 @@ void World::loadLevel() {
 		{
 			enemies[i]->markedTarget = false;
 			enemies[i]->pos = enemies[i]->spawnPos;
+			enemies[i]->hearts = 3;
+			enemies[i]->hitTimer = 0.0f;
+			enemies[i]->jaw = 180;
 		}
 	}
 	

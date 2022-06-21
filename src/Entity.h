@@ -10,8 +10,6 @@
 #include "input.h"
 #include "animation.h"
 
-
-
 class Entity
 {
 public:
@@ -81,7 +79,8 @@ enum ANIM_ID: uint8 {
     IDLE,
     WALK,
     RUN,
-    JUMP
+    JUMP,
+    ATTACK
 };
 
 enum ITEM_ID : uint8 {
@@ -124,7 +123,7 @@ public:
         playerModel.translate(pos.x, pos.y, pos.z);
         playerModel.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
 
-        currentItem = ITEM_ID::SWORD;
+        currentItem = ITEM_ID::NONE;
 
         inventory.reserve(2);
         EntityMesh* entityBox = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), shader);
@@ -132,17 +131,17 @@ public:
         inventory.push_back(entityBox);
         //inventory.push_back(entityWall);
         
-        animations.reserve(4);
+        animations.reserve(5);
         animations.push_back(Animation::Get("data/sword_idle.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
         animations.push_back(Animation::Get("data/jump.skanim"));
+        animations.push_back(Animation::Get("data/attack.skanim"));
         
         currentAnim = ANIM_ID::IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
         Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
-        //Mesh* playerMesh = Mesh::Get("data/skeleton.obj");
 
         playerModel.scale(0.01f, 0.01f, 0.01f);
         mesh = new EntityMesh(GL_TRIANGLES, playerModel, playerMesh, playerTex, shader);
@@ -194,6 +193,7 @@ public:
 
     bool markedTarget;
     int hearts;
+    float hitTimer;
 
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
@@ -213,17 +213,10 @@ public:
         mesh = new EntityMesh(GL_TRIANGLES, model, n_mesh, tex, shader);
         sword = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), shader);
 
-        /*
-        pos.x = 10;
-        pos.y = 0;
-        pos.z = 10;
-        vel.x = 0;
-        vel.y = 0;
-        vel.z = 0;
-        */
         jaw = 180;
         markedTarget = false;
         hearts = 3;
+        hitTimer = 0.0f;
     }
     void render();
     void update(float dt);
@@ -243,6 +236,7 @@ public:
             content = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"));
         }
     }
+
     //methods overwritten 
     void render();
     void update(float dt);
@@ -254,18 +248,12 @@ public:
 
 };
 
-class EntityMeshDynamic : public EntityMesh
-{
-public:
-
-};
-
 class EntitySound : public Entity
 {
 public:
 
 };
 
-void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f);
-void renderMeshAnim(int primitive, Matrix44& model, Mesh* a_mesh, Animation* anim, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0f);
+void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV = false);
+
 #endif 

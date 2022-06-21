@@ -50,62 +50,14 @@ void playStage::render()
 
 	player->render();
 	
-	if (player->currentItem != ITEM_ID::NONE) {
-		player->resultSk = player->animations[player->currentAnim]->skeleton;
-		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
-		handLocalMatrix.rotate(120 * DEG2RAD, Vector3(1, 0, 0));
-		handLocalMatrix.rotate(100 * DEG2RAD, Vector3(0, 1, 0));
-		handLocalMatrix.translateGlobal(-10, 0, 0);
-		Matrix44& actualModel = player->inventory[player->currentItem]->model;
-		actualModel = handLocalMatrix * player->visualModel;
-		
-		player->inventory[player->currentItem]->render();
-
-		player->swordModel = actualModel;
-		player->swordModel.scale(80.0f, 80.0f, 80.0f);
-		//player->swordModel.translateGlobal(-0.5, 0, 0);
-		player->inventory[player->currentItem]->mesh->renderBounding(player->swordModel);
-		player->inventory[player->currentItem]->render();
-	}
+	playerInventory();
 		
 	//Draw the floor grid
 	//drawGrid();
 
-	//RENDER ALL GUI
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	Vector3 playerPos = player->pos + Vector3(0, 4, 0);
-	game->camera->updateViewMatrix();
-	game->camera->updateProjectionMatrix();
-	Vector3 playerScreen = game->camera->project(playerPos, game->window_width, game->window_height);
-	Texture* texture = Texture::Get("data/fangs.png");
-	if(playerScreen.z < 1.0f)
-		renderGUI(playerScreen.x, game->window_width - playerScreen.y, 50.0f, 50.0f, texture, true);
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
-
-	//RENDER ALL GUI
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	Texture* heartTex = Texture::Get("data/heart.png");
 	
-	for (size_t i = 0; i < player->hearts; i++)
-	{
-		renderGUI(30 + 50*i, 100, 100.0f, 100.0f, heartTex, true);
-	}
-	
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glDisable(GL_BLEND);
+	playerGUI();
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
@@ -121,15 +73,24 @@ void playStage::update(float seconds_elapsed)
 	Game *game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-
+	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
 	//std::cout << "Enemies:" << world.enemies.size() << std::endl;
 
-	player->currentAnim = ANIM_ID::IDLE;
+	//player->currentAnim = ANIM_ID::IDLE;
 
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
 	player->jumpLock = max(0.0f, player->jumpLock - seconds_elapsed);
 	player->hitTimer = max(0.0f, player->hitTimer - seconds_elapsed);
+	for (size_t i = 0; i < s_enemies.size(); i++)
+	{
+		if (s_enemies[i]->hearts <= 0)
+		{
+			s_enemies.erase(s_enemies.begin() + i);
+		}
+		s_enemies[i]->hitTimer = max(0.0f, s_enemies[i]->hitTimer - seconds_elapsed);
+	}
+	
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
 
@@ -190,6 +151,9 @@ void playStage::update(float seconds_elapsed)
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
 		player->currentAnim = ANIM_ID::RUN;
+	}
+	if (Input::isMousePressed(SDL_BUTTON_LMASK)) {
+		player->currentAnim = ANIM_ID::ATTACK;
 	}
 
 	//jump
@@ -416,42 +380,6 @@ void renderWorld() {
 	}
 }
 
-void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV) {
-	int windowWidth = Game::instance->window_width;
-	int windowHeight = Game::instance->window_height;
-	Mesh quad;
-	quad.createQuad(x, y, w, h, flipYV);
-
-	Camera cam2D;
-	cam2D.setOrthographic(0, windowWidth, windowHeight, 0, -1, 1);
-	assert(mesh != NULL, "mesh in renderMesh was null");
-
-	Shader* shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
-	
-	if (!shader) return;
-
-	//enable shader
-	shader->enable();
-
-	//upload uniforms
-	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-	shader->setUniform("u_viewprojection", cam2D.viewprojection_matrix);
-	if (tex != NULL)
-	{
-		shader->setUniform("u_texture", tex, 0);
-	}
-	shader->setUniform("u_time", time);
-	shader->setUniform("u_text_tiling", 1.0f);
-	Matrix44 quadModel;
-	//quadModel.translate(sin(Game::instance->time ) * 20, 0, 0);
-	shader->setUniform("u_model", quadModel);
-	//do the draw call
-	quad.render(GL_TRIANGLES);
-
-	//disable shader
-	shader->disable();
-}
-
 void setCamera(Camera *cam, Matrix44 model)
 {
 	Game* game = Game::instance;
@@ -486,29 +414,13 @@ void setCamera(Camera *cam, Matrix44 model)
 			//if ((entity->collision))
 			if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (world.sPressed))
 			{
-				//eye = model * Vector3(0.0f, 10.0f, 2.0f);
-				//entity->coverFlag = true;
 				eye = model * Vector3(0.0f, 6.0f, -4.0f);
 				center = model * Vector3(0.0f, -2.0f, 10.0f);
 			}
-			/*
-			else {
-				entity->coverFlag = false;
-			}
-			*/
-			/*
-			if (cam->eye.distance(world.static_entities[i]->getPosition()) < cam->eye.distance(player->pos) && (world.static_entities[i]->getPosition().z > player->pos.z))
-			{
-				eye = model * Vector3(0.0f, 10.0f, 2.0f);
-			}
-			*/
-
 		}
 
 		cam->lookAt(eye, center, up);
-	}
-	
-	
+	}	
 }
 
 Vector3 checkCollision(Vector3 target)
@@ -527,11 +439,9 @@ Vector3 checkCollision(Vector3 target)
 	
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
-		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.5, coll, collnorm) && player->hitTimer == 0.0f) {
-		//if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 1, coll, collnorm) && player->hitTimer == 0.0f) {
+		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f) {
 			player->hitTimer = 5.0f;
 			player->hearts -= 1;
-			//Game::instance->world.currentStage = STAGE_ID::TRANSITION;
 		}
 	}
 
@@ -703,7 +613,6 @@ void checkIfFinish(Camera* cam) {
 	Vector3 entityPos = entity->model.getTranslation();
 
 	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
-	
 
 	if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
 	{
@@ -726,6 +635,54 @@ void rotateSelected(float angleDegrees) {
 		std::cout << "aaaaaa: " << std::endl;
 	}
 	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
+}
+
+void playerInventory() {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	if (player->currentItem != ITEM_ID::NONE) {
+		player->resultSk = player->animations[player->currentAnim]->skeleton;
+		Matrix44 handLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
+		handLocalMatrix.rotate(120 * DEG2RAD, Vector3(1, 0, 0));
+		handLocalMatrix.rotate(100 * DEG2RAD, Vector3(0, 1, 0));
+		handLocalMatrix.translateGlobal(-10, 0, 0);
+		Matrix44& actualModel = player->inventory[player->currentItem]->model;
+		actualModel = handLocalMatrix * player->visualModel;
+
+		player->inventory[player->currentItem]->render();
+
+		player->swordModel = actualModel;
+		player->swordModel.scale(80.0f, 80.0f, 80.0f);
+		//player->swordModel.translateGlobal(-0.5, 0, 0);
+		player->inventory[player->currentItem]->mesh->renderBounding(player->swordModel);
+		player->inventory[player->currentItem]->render();
+	}
+}
+
+void playerGUI() {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	//RENDER ALL GUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	Texture* heartTex = Texture::Get("data/heart.png");
+
+	for (size_t i = 0; i < player->hearts; i++)
+	{
+		renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
+	}
+
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
 }
 
 void handleEnemies(float seconds_elapsed) {
@@ -751,12 +708,6 @@ void handleEnemies(float seconds_elapsed) {
 		{
 			enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
 		}
-		/*
-		if (dist > 4.0f)
-		{
-			enemy->pos = enemy->pos + (forward * 10.0f * seconds_elapsed);
-		}
-		*/
 		if (dist < 6.0f || enemy->markedTarget)
 		{
 			enemy->currentAnim = ANIM_ID::WALK;
@@ -771,7 +722,21 @@ void handleEnemies(float seconds_elapsed) {
 		{
 			enemy->currentAnim = ANIM_ID::IDLE;
 		}
-		
+		Vector3 coll;
+		Vector3 collnorm;
+		Vector3 pushAway;
+		Vector3 returned;
+
+		Vector3 centerCharacter = enemy->pos + Vector3(0.0f, 1.0f, 0.0f);
+
+		if (player->currentItem != ITEM_ID::NONE)
+		{
+			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f) {	
+				enemy->hitTimer = 2.0f;
+				enemy->hearts -= 1;
+			}
+		}
+
 	}
 }
 
