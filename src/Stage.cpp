@@ -76,8 +76,17 @@ void playStage::update(float seconds_elapsed)
 	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
 	//std::cout << "Enemies:" << world.enemies.size() << std::endl;
 
-	//player->currentAnim = ANIM_ID::IDLE;
+	player->time += seconds_elapsed;
 
+	float animDuration;
+	//std::cout << "Anim duration: " << animDuration << std::endl;
+	if (player->animTimer <= 0.0f)
+	{
+		player->currentAnim = ANIM_ID::IDLE;
+	}
+
+	player->animTimer = max(0.0f, player->animTimer - (seconds_elapsed / player->animDuration));
+	//std::cout << "Anim duration: " << player->animTimer << std::endl;
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
 	player->jumpLock = max(0.0f, player->jumpLock - seconds_elapsed);
@@ -154,11 +163,18 @@ void playStage::update(float seconds_elapsed)
 	}
 	if (Input::isMousePressed(SDL_BUTTON_LMASK)) {
 		player->currentAnim = ANIM_ID::ATTACK;
+		player->time = 0.0f;
+		player->animDuration = player->animations[player->currentAnim]->duration / 1.5;
+		player->animTimer = player->animations[player->currentAnim]->duration / 1.5;
 	}
 
 	//jump
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true) {
+		player->time = 0.0f;
 		player->isGrounded = false;
+		player->animDuration = player->animations[player->currentAnim]->duration / 1.5;
+		player->animTimer = player->animations[player->currentAnim]->duration / 1.5;
+		
 		//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
 		player->jumpLock = 0.2f;
 	}
@@ -442,41 +458,43 @@ Vector3 checkCollision(Vector3 target)
 		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f) {
 			player->hitTimer = 5.0f;
 			player->hearts -= 1;
+			player->currentAnim = ANIM_ID::HIT;
 		}
 	}
 
 	for (size_t i = 0; i < world.collidable_entities.size(); i++)
 	{
 		Vector3 posEnt = world.collidable_entities[i]->model.getTranslation();
-			if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, bottomCharacter, 0.1, coll, collnorm)) {
-				if (player->pos.y >= coll.y)
-				{
-					std::cout << "TOP COLLISION" << std::endl;
-					Game::instance->world.player->isGrounded = true;
-					player->isGrounded = true;
-					target.y = coll.y + 0.05f;
-					return target;
-				}
-			}
-			else if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.1, coll, collnorm))
+
+		if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, bottomCharacter, 0.1, coll, collnorm)) {
+			if (player->pos.y >= coll.y)
 			{
-					player->isGrounded = true;
+				std::cout << "TOP COLLISION" << std::endl;
+				Game::instance->world.player->isGrounded = true;
+				player->isGrounded = true;
+				target.y = coll.y + 0.05f;
+				return target;
 			}
-			else {
-					player->isGrounded = false;
-			}
-			if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
-			{
-				std::cout << "COLLISION fromt" << std::endl;
+		}
+		else if (world.ground->mesh->testSphereCollision(world.ground->model, bottomCharacter, 0.1, coll, collnorm))
+		{
+				player->isGrounded = true;
+		}
+		else {
+				player->isGrounded = false;
+		}
+		if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
+		{
+			std::cout << "COLLISION fromt" << std::endl;
 
-				world.collidable_entities[i]->collision = true;
+			world.collidable_entities[i]->collision = true;
 
-				pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
 
-				returned = player->pos - pushAway;
-				returned.y = player->pos.y;
-				return returned;
-			}			
+			returned = player->pos - pushAway;
+			returned.y = player->pos.y;
+			return returned;
+		}			
 	}
 	return target;
 }
@@ -560,7 +578,7 @@ void takeEntity(Camera* cam) {
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	std::vector<EntityMesh*>& s_entities = Game::instance->world.static_entities;
+	std::vector<EntityChest*>& chests_address = world.chests;
 
 	Vector2 mouse = Input::mouse_position;
 
@@ -587,7 +605,14 @@ void takeEntity(Camera* cam) {
 			std::cout << "Object selected: " << std::endl;
 			player->inventory.push_back(content);
 			player->currentItem = ITEM_ID::SWORD;
-			//s_entities.erase(Game::instance->world.static_entities.begin() + i);
+			chests_address.erase(world.chests.begin() + i);
+			for (size_t i = 0; i < world.collidable_entities.size(); i++)
+			{
+				if (world.collidable_entities[i]->id == ENTITY_ID::ENTITY_CHEST)
+				{
+					world.collidable_entities.erase(world.collidable_entities.begin() + i);
+				}
+			}
 			break;
 		}
 	}
@@ -650,7 +675,7 @@ void playerInventory() {
 		handLocalMatrix.translateGlobal(-10, 0, 0);
 		Matrix44& actualModel = player->inventory[player->currentItem]->model;
 		actualModel = handLocalMatrix * player->visualModel;
-
+		actualModel.scale(1.5f, 1.5f, 1.5f);
 		player->inventory[player->currentItem]->render();
 
 		player->swordModel = actualModel;
@@ -710,9 +735,9 @@ void handleEnemies(float seconds_elapsed) {
 		}
 		if (dist < 6.0f || enemy->markedTarget)
 		{
-			enemy->currentAnim = ANIM_ID::WALK;
+			enemy->currentAnim = ANIM_ID::ATTACK;
 			enemy->markedTarget = true;
-			if (dist > 3.0f){
+			if (dist > 1.0f){
 				Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
 				enemy->pos = enemyCollision(enemy, targetPos);
 			}
@@ -720,7 +745,7 @@ void handleEnemies(float seconds_elapsed) {
 		}
 		else
 		{
-			enemy->currentAnim = ANIM_ID::IDLE;
+			enemy->currentAnim = ANIM_ID::SWORD_IDLE;
 		}
 		Vector3 coll;
 		Vector3 collnorm;

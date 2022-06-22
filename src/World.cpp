@@ -84,20 +84,18 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				if (index == 1) {
 					prop = viewDatas[1];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::WALL_ID;
 					entities.push_back(entity);
 				}
 				else if (index == 2) {
 					prop = viewDatas[1];
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::WALL_ID;
 					entities.push_back(entity);
 				}
 				else if (index == 4) {
 					prop = viewDatas[2];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::BOX_ID;
+					entity->id = ENTITY_ID::ENTITY_MESH;
 					finish = entity;
 					//entities.push_back(entity);
 				}
@@ -107,7 +105,6 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 					enenmy->spawnPos = enenmy->pos;
-					//entity->id = ENTITY_ID::BOX_ID;
 					enemies.push_back(enenmy);
 
 				}
@@ -115,7 +112,6 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					//prop = viewDatas[4];
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
 					EntityChest* entity = new EntityChest(cellModel, actualLevel);
-					//entity->id = ENTITY_ID::WALL_ID;
 					chests.push_back(entity);
 
 				}
@@ -160,11 +156,14 @@ void  World::unifyCollidableEntities() {
 	for (size_t i = 0; i < static_entities.size(); i++)
 	{
 		EntityMesh* entity = static_entities[i];
+		//collidable_entities.emplace_back(entity);
+		//collidable_entities.push_back(std::make_shared<Entity*>(entity));
 		collidable_entities.push_back(entity);
 	}
 	for (size_t i = 0; i < chests.size(); i++)
 	{
 		EntityMesh* entity = chests[i]->mesh;
+		//collidable_entities.push_back(std::make_shared<Entity*>(entity));
 		collidable_entities.push_back(entity);
 	}
 	for (size_t i = 0; i < enemies.size(); i++)

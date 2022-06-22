@@ -10,6 +10,12 @@
 #include "input.h"
 #include "animation.h"
 
+enum ENTITY_ID : uint8 {
+    ENTITY_MESH,
+    ENTITY_ENEMY,
+    ENTITY_CHEST,
+};
+
 class Entity
 {
 public:
@@ -18,6 +24,7 @@ public:
     Matrix44 model;
     Matrix44 global_model;
     BoundingBox aabb;
+    ENTITY_ID id;
 
     //methods overwritten by derived classes 
     virtual void render() = 0;
@@ -39,11 +46,7 @@ public:
     Matrix44 getGlobalMatrix(); //returns transform in world coordinates
 };
 
-enum ENTITY_ID : uint8 {
-    NOTHING,
-    WALL_ID,
-    BOX_ID,
-};
+
 
 class EntityMesh : public Entity
 {
@@ -54,11 +57,11 @@ public:
     Texture* texture;
     Shader* shader;
     float tiling;
-    ENTITY_ID id;
+    
     bool coverFlag;
     bool collision;
 
-    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::NOTHING) {
+    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::ENTITY_MESH) {
         primitive = prim;
         model = new_model;
         mesh = mes;
@@ -77,10 +80,13 @@ public:
 
 enum ANIM_ID: uint8 {
     IDLE,
+    SWORD_IDLE,
     WALK,
     RUN,
     JUMP,
-    ATTACK
+    ATTACK,
+    HIT,
+    DEAD
 };
 
 enum ITEM_ID : uint8 {
@@ -113,6 +119,9 @@ public:
 
     int hearts;
     float hitTimer;
+    float animTimer;
+    float animDuration;
+    float time;
 
     Matrix44 visualModel;
     Skeleton resultSk;
@@ -131,12 +140,15 @@ public:
         inventory.push_back(entityBox);
         //inventory.push_back(entityWall);
         
-        animations.reserve(5);
+        animations.reserve(8);
+        animations.push_back(Animation::Get("data/idle.skanim"));
         animations.push_back(Animation::Get("data/sword_idle.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
         animations.push_back(Animation::Get("data/jump.skanim"));
         animations.push_back(Animation::Get("data/attack.skanim"));
+        animations.push_back(Animation::Get("data/hit.skanim"));
+        animations.push_back(Animation::Get("data/death.skanim"));
         
         currentAnim = ANIM_ID::IDLE;
 
@@ -158,11 +170,13 @@ public:
         hearts = 3;
 
         hitTimer = 0.0f;
+        time = 0.0f;
 
         firstPerson = false;
         cameraLocked = true;
         isGrounded = true;
         walkingBackwards = false;
+        animDuration = animations[currentAnim]->duration;
     }
 
     //methods overwritten 
@@ -194,17 +208,23 @@ public:
     bool markedTarget;
     int hearts;
     float hitTimer;
+    float animTimer;
 
-    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex) {
+    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, ENTITY_ID e_id = ENTITY_ID::ENTITY_ENEMY) {
+        id = e_id;
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
-        animations.reserve(4);
+        animations.reserve(8);
+        animations.push_back(Animation::Get("data/idle.skanim"));
         animations.push_back(Animation::Get("data/sword_idle.skanim"));
-        animations.push_back(Animation::Get("data/attack.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
+        animations.push_back(Animation::Get("data/jump.skanim"));
+        animations.push_back(Animation::Get("data/attack.skanim"));
+        animations.push_back(Animation::Get("data/hit.skanim"));
+        animations.push_back(Animation::Get("data/death.skanim"));
 
-        currentAnim = ANIM_ID::IDLE;
+        currentAnim = ANIM_ID::SWORD_IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
         Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
@@ -217,6 +237,7 @@ public:
         markedTarget = false;
         hearts = 3;
         hitTimer = 0.0f;
+        animTimer = 0.0f;
     }
     void render();
     void update(float dt);
@@ -228,9 +249,11 @@ public:
     EntityMesh* mesh;
     EntityMesh* content;
 
-    EntityChest(Matrix44 model, int actualLevel) {
+    EntityChest(Matrix44 model, int actualLevel, ENTITY_ID e_id = ENTITY_ID::ENTITY_CHEST) {
+        id = e_id;
         mesh = new EntityMesh(GL_TRIANGLES, model, Mesh::Get("data/chest.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs"));
         mesh->model = model;
+        mesh->id = e_id;
         if (actualLevel == 1)
         {
             content = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"));

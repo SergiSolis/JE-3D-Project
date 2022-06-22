@@ -66,10 +66,13 @@ public:
 
 	EntityPlayer* player;
 
+
 	std::vector<EntityMesh*> static_entities;
 	std::vector<EntityChest*> chests;
 
 	std::vector<EntityEnemy*> enemies;
+
+	//std::vector<std::shared_ptr<Entity*>> collidable_entities;
 
 	std::vector<EntityMesh*> collidable_entities;
 

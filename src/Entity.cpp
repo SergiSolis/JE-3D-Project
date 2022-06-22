@@ -89,10 +89,15 @@ void EntityPlayer::render() {
 
 	//enable shader
 	mesh->shader->enable();
-
-	float t = fmod(Game::instance->time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	float t = fmod(time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	if (currentAnim == ANIM_ID::JUMP)
+	{
+		t = fmod(time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	}
+	
+	std::cout << "Time: " << time << std::endl;
+	
 	animations[currentAnim]->assignTime(t * animations[currentAnim]->duration);
-	//player->run->assignTime(t * player->run->duration);
 
 	resultSk = animations[currentAnim]->skeleton;
 
