@@ -57,6 +57,9 @@ struct sPropViewData {
 
 class World {
 public:
+
+	float TIME_TRIAL_LVL_1 = 50.0f;
+
 	Mesh* mesh = NULL;
 	Texture* texture = NULL;
 	Shader* shader = NULL;
@@ -112,7 +115,7 @@ public:
 	Texture* box_text;
 	Matrix44 boxModel;
 
-	float timeTrial = 100.0f;
+	float timeTrial = TIME_TRIAL_LVL_1;
 
 	bool sPressed = false;
 

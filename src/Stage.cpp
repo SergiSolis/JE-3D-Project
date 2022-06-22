@@ -78,11 +78,21 @@ void playStage::update(float seconds_elapsed)
 
 	player->time += seconds_elapsed;
 
-	float animDuration;
-	//std::cout << "Anim duration: " << animDuration << std::endl;
+	
 	if (player->animTimer <= 0.0f)
 	{
 		player->currentAnim = ANIM_ID::IDLE;
+	}
+
+	for (size_t i = 0; i < s_enemies.size(); i++)
+	{
+		s_enemies[i]->time += seconds_elapsed;
+		std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
+		s_enemies[i]->animTimer = max(0.0f, s_enemies[i]->animTimer - (seconds_elapsed / s_enemies[i]->animDuration));
+		if (s_enemies[i]->animTimer <= 0.0f)
+		{
+			s_enemies[i]->currentAnim = ANIM_ID::SWORD_IDLE;
+		}
 	}
 
 	player->animTimer = max(0.0f, player->animTimer - (seconds_elapsed / player->animDuration));
@@ -348,14 +358,14 @@ void renderWorld() {
 		enemy->render();
 		enemy->resultSk = enemy->animations[enemy->currentAnim]->skeleton;
 		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
-		handLocalMatrix.rotate(80 * DEG2RAD, Vector3(1, 0, 0));
+		handLocalMatrix.rotate(120 * DEG2RAD, Vector3(1, 0, 0));
 		handLocalMatrix.rotate(100 * DEG2RAD, Vector3(0, 1, 0));
 		handLocalMatrix.translateGlobal(20, 0, 20);
 		Matrix44& actualModel = enemy->sword->model;
 		actualModel = handLocalMatrix * enemy->visualModel;
 		enemy->swordModel = actualModel;
 		enemy->swordModel.scale(80.0f, 80.0f, 80.0f);
-		enemy->swordModel.translateGlobal(-0.5, 0, 0);
+		enemy->swordModel.translate(-0.05, 0, 0.35);
 		enemy->sword->mesh->renderBounding(enemy->swordModel);
 		enemy->sword->render();
 
@@ -456,9 +466,11 @@ Vector3 checkCollision(Vector3 target)
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
 		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f) {
-			player->hitTimer = 5.0f;
+			player->hitTimer = player->animations[player->currentAnim]->duration;
 			player->hearts -= 1;
 			player->currentAnim = ANIM_ID::HIT;
+			player->animDuration = player->animations[player->currentAnim]->duration;
+			player->animTimer = player->animations[player->currentAnim]->duration;
 		}
 	}
 
@@ -733,19 +745,17 @@ void handleEnemies(float seconds_elapsed) {
 		{
 			enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
 		}
-		if (dist < 6.0f || enemy->markedTarget)
+		if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f)
 		{
 			enemy->currentAnim = ANIM_ID::ATTACK;
+			enemy->animDuration = player->animations[player->currentAnim]->duration;
+			enemy->animTimer = player->animations[player->currentAnim]->duration;
 			enemy->markedTarget = true;
 			if (dist > 1.0f){
 				Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
 				enemy->pos = enemyCollision(enemy, targetPos);
 			}
 
-		}
-		else
-		{
-			enemy->currentAnim = ANIM_ID::SWORD_IDLE;
 		}
 		Vector3 coll;
 		Vector3 collnorm;
@@ -757,8 +767,12 @@ void handleEnemies(float seconds_elapsed) {
 		if (player->currentItem != ITEM_ID::NONE)
 		{
 			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f) {	
-				enemy->hitTimer = 2.0f;
+				enemy->time = 0.0f;
+				enemy->hitTimer = player->animations[player->currentAnim]->duration / 2;
 				enemy->hearts -= 1;
+				enemy->currentAnim = ANIM_ID::HIT;
+				enemy->animDuration = player->animations[player->currentAnim]->duration / 2;
+				enemy->animTimer = player->animations[player->currentAnim]->duration / 2;
 			}
 		}
 

@@ -209,6 +209,8 @@ public:
     int hearts;
     float hitTimer;
     float animTimer;
+    float animDuration;
+    float time;
 
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, ENTITY_ID e_id = ENTITY_ID::ENTITY_ENEMY) {
         id = e_id;
@@ -238,6 +240,7 @@ public:
         hearts = 3;
         hitTimer = 0.0f;
         animTimer = 0.0f;
+        time = 0.0f;
     }
     void render();
     void update(float dt);

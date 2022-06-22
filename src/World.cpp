@@ -222,12 +222,12 @@ void World::loadLevel() {
 		gamemap = loadGameMap(path);
 		importMap(static_entities);
 		unifyCollidableEntities();
-		timeTrial = 20.0f;
+		timeTrial = TIME_TRIAL_LVL_1;
 		levelDone = false;
 	}
 	else {
 		player->pos = spawnPos;
-		timeTrial = 10.0f;
+		timeTrial = TIME_TRIAL_LVL_1;
 		for (size_t i = 0; i < enemies.size(); i++)
 		{
 			enemies[i]->markedTarget = false;
