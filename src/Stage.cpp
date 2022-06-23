@@ -78,7 +78,6 @@ void playStage::update(float seconds_elapsed)
 
 	player->time += seconds_elapsed;
 
-	
 	if (player->animTimer <= 0.0f)
 	{
 		player->currentAnim = ANIM_ID::IDLE;
@@ -86,12 +85,27 @@ void playStage::update(float seconds_elapsed)
 
 	for (size_t i = 0; i < s_enemies.size(); i++)
 	{
+		
+
+		s_enemies[i]->hitTimer = max(0.0f, s_enemies[i]->hitTimer - seconds_elapsed);
+	}
+
+	for (size_t i = 0; i < s_enemies.size(); i++)
+	{
 		s_enemies[i]->time += seconds_elapsed;
-		std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
+		//std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
 		s_enemies[i]->animTimer = max(0.0f, s_enemies[i]->animTimer - (seconds_elapsed / s_enemies[i]->animDuration));
-		if (s_enemies[i]->animTimer <= 0.0f)
+		/*if (s_enemies[i]->animTimer <= 0.0f && s_enemies[i]->currentAnim != ANIM_ID::DEAD)
 		{
 			s_enemies[i]->currentAnim = ANIM_ID::SWORD_IDLE;
+		}
+		*/
+		if (s_enemies[i]->animTimer <= 0.0f && s_enemies[i]->hearts <= 0) {
+			s_enemies.erase(s_enemies.begin() + i);
+		}
+		if (s_enemies[i]->currentAnim == ANIM_ID::DEAD)
+		{
+			std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
 		}
 	}
 
@@ -101,14 +115,7 @@ void playStage::update(float seconds_elapsed)
 
 	player->jumpLock = max(0.0f, player->jumpLock - seconds_elapsed);
 	player->hitTimer = max(0.0f, player->hitTimer - seconds_elapsed);
-	for (size_t i = 0; i < s_enemies.size(); i++)
-	{
-		if (s_enemies[i]->hearts <= 0)
-		{
-			s_enemies.erase(s_enemies.begin() + i);
-		}
-		s_enemies[i]->hitTimer = max(0.0f, s_enemies[i]->hitTimer - seconds_elapsed);
-	}
+	
 	
 	//example
 	world.angle += (float)seconds_elapsed * 10.0f;
@@ -171,11 +178,11 @@ void playStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
 		player->currentAnim = ANIM_ID::RUN;
 	}
-	if (Input::isMousePressed(SDL_BUTTON_LMASK)) {
+	if (Input::isMousePressed(SDL_BUTTON_LMASK) && player->currentItem != ITEM_ID::NONE) {
 		player->currentAnim = ANIM_ID::ATTACK;
 		player->time = 0.0f;
-		player->animDuration = player->animations[player->currentAnim]->duration / 1.5;
-		player->animTimer = player->animations[player->currentAnim]->duration / 1.5;
+		player->animDuration = player->animations[player->currentAnim]->duration / 1.25;
+		player->animTimer = player->animations[player->currentAnim]->duration / 1.25;
 	}
 
 	//jump
@@ -465,7 +472,8 @@ Vector3 checkCollision(Vector3 target)
 	
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
-		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f) {
+		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f 
+			&& (world.enemies[i]->currentAnim == ANIM_ID::ATTACK && world.enemies[i]->animTimer >= 0.55f)) {
 			player->hitTimer = player->animations[player->currentAnim]->duration;
 			player->hearts -= 1;
 			player->currentAnim = ANIM_ID::HIT;
@@ -745,11 +753,15 @@ void handleEnemies(float seconds_elapsed) {
 		{
 			enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
 		}
-		if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f)
+		if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 		{
-			enemy->currentAnim = ANIM_ID::ATTACK;
-			enemy->animDuration = player->animations[player->currentAnim]->duration;
-			enemy->animTimer = player->animations[player->currentAnim]->duration;
+			if (enemy->currentAnim != ANIM_ID::ATTACK)
+			{
+				enemy->currentAnim = ANIM_ID::ATTACK;
+				enemy->time = 0.0f;
+				enemy->animDuration = player->animations[player->currentAnim]->duration;
+				enemy->animTimer = player->animations[player->currentAnim]->duration;
+			}
 			enemy->markedTarget = true;
 			if (dist > 1.0f){
 				Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
@@ -766,13 +778,22 @@ void handleEnemies(float seconds_elapsed) {
 
 		if (player->currentItem != ITEM_ID::NONE)
 		{
-			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f) {	
+			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f 
+				&& (player->currentAnim == ANIM_ID::ATTACK && player->animTimer >= 0.55f)) {
 				enemy->time = 0.0f;
 				enemy->hitTimer = player->animations[player->currentAnim]->duration / 2;
 				enemy->hearts -= 1;
 				enemy->currentAnim = ANIM_ID::HIT;
 				enemy->animDuration = player->animations[player->currentAnim]->duration / 2;
 				enemy->animTimer = player->animations[player->currentAnim]->duration / 2;
+				if (enemy->hearts <= 0)
+				{
+					enemy->time = 0.0f;
+					enemy->currentAnim = ANIM_ID::DEAD;
+					enemy->animDuration = player->animations[player->currentAnim]->duration / 0.75f;
+					enemy->animTimer = player->animations[player->currentAnim]->duration / 0.75f;
+
+				}
 			}
 		}
 

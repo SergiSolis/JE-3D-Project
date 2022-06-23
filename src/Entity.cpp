@@ -95,7 +95,7 @@ void EntityPlayer::render() {
 		t = fmod(time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
 	}
 	
-	std::cout << "Time: " << time << std::endl;
+	//std::cout << "Time: " << time << std::endl;
 	
 	animations[currentAnim]->assignTime(t * animations[currentAnim]->duration);
 
