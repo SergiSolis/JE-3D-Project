@@ -118,6 +118,11 @@ public:
 	float timeTrial = TIME_TRIAL_LVL_1;
 
 	bool sPressed = false;
+	const int numBullets = 100;
+	//std::vector<sBullet> bullets;
+	sBullet bullets[100];
+	bool bulletOnce = false;
+	
 
 	void loadWorld();
 	void setConfiguration();

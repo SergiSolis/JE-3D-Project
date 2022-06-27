@@ -185,6 +185,23 @@ public:
     void update(float dt);
 };
 
+struct sBullet {
+    Matrix44 model;
+    Mesh* mesh;
+    Texture* texture;
+    Shader* shader;
+    Vector3 last_position;
+    Vector3 velocity;
+    float ttl;
+    float power;
+    int author;
+    int type;
+
+    bool isActive() {
+        return ttl <= 0.0f;
+    }
+};
+
 class EntityEnemy : public Entity
 {
 public:
@@ -211,6 +228,9 @@ public:
     float animTimer;
     float animDuration;
     float time;
+
+    //const int numBullets = 10;
+    //std::vector<sBullet*> bullets;
 
     EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, ENTITY_ID e_id = ENTITY_ID::ENTITY_ENEMY) {
         id = e_id;
@@ -241,6 +261,13 @@ public:
         hitTimer = 0.0f;
         animTimer = 0.0f;
         time = 0.0f;
+        /*
+        bullets.reserve(numBullets);
+        for (size_t i = 0; i < numBullets; i++)
+        {
+            bullets[i] = new sBullet(model);
+        }
+        */
     }
     void render();
     void update(float dt);
@@ -268,15 +295,6 @@ public:
     void update(float dt);
 };
 
-struct sBullet {
-    Matrix44 model;
-    Vector3 last_position;
-    float ttl;
-    float power;
-    int author;
-    int type;
-};
-
 class EntityCamera : public Entity
 {
 public:
@@ -290,5 +308,6 @@ public:
 };
 
 void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV = false);
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0);
 
 #endif 

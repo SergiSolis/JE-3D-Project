@@ -87,4 +87,8 @@ void handleEnemies(float seconds_elapsed);
 
 float sign(float value);
 
+
+int getFreeBullet();
+bool spawnBullet(sBullet& newBulletData, int enemyIndex);
+
 #endif 

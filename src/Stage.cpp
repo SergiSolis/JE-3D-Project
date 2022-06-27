@@ -5,6 +5,7 @@
 #include <cmath>
 #include "animation.h"
 #include "input.h"
+#include "extra/coldet/coldet.h"
 
 
 void titleStage::render()
@@ -75,6 +76,47 @@ void playStage::update(float seconds_elapsed)
 	EntityPlayer* player = world.player;
 	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
 	//std::cout << "Enemies:" << world.enemies.size() << std::endl;
+
+	Vector3 coll;
+	Vector3 collnorm;
+	Vector3 pushAway;
+	Vector3 returned;
+
+	for (size_t i = 0; i < world.numBullets; i++)
+	{
+		sBullet& currentBullet = world.bullets[i];
+		if (currentBullet.isActive())
+			continue;
+
+		//first check if we have build the collision model
+		if (!player->mesh->mesh->collision_model)
+			player->mesh->mesh->createCollisionModel();
+
+		CollisionModel3D* collision_model = (CollisionModel3D*) player->mesh->mesh->collision_model;
+		Vector3 currentPos = currentBullet.model.getTranslation();
+		Vector3 next = currentPos + (currentBullet.velocity * seconds_elapsed);
+		//Vector3 ray_origin = currentBullet->last_position;
+		//Vector3 ray_direction = currentBullet->model.getTranslation() - currentBullet->last_position;
+		//float max_ray_dist = ray_direction.length();
+		//float max_ray_dist = next.length();
+
+		//now check where the ray collides with mesh
+		//bool test = collision_model->rayCollision(currentPos.v, next.v, false, 0.0, max_ray_dist); //max ray distance
+
+		
+		currentBullet.last_position = currentPos;
+		currentBullet.model.setTranslation(next.x, next.y, next.z);
+		currentBullet.ttl -= seconds_elapsed;
+		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 0.75, coll, collnorm);
+		std::cout << "TTL: " << currentBullet.ttl << std::endl;
+		//if ray didnt collide
+		if (test == false)
+			continue;
+
+		currentBullet.ttl = -1.0f;
+		player->hearts -= 1;
+	}
+
 
 	player->time += seconds_elapsed;
 
@@ -334,10 +376,46 @@ void endStage::update(float seconds_elapsed)
 	}
 }
 
+int getFreeBullet() {
+	Game* game = Game::instance;
+	World& world = game->world;
+	for (size_t i = 0; i < world.numBullets; i++)
+	{
+
+		sBullet& currentBullet = world.bullets[i];
+		if (currentBullet.isActive())
+			return i;
+	}
+	return -1;
+}
+
+bool spawnBullet(sBullet& newBulletData, int enemyIndex) {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	int index = getFreeBullet();
+
+	if (index == -1)
+	{
+		return false;
+	}
+
+	sBullet& bullet =world.bullets[index];
+	
+	bullet.model = Matrix44();
+	bullet.last_position = Vector3(world.enemies[enemyIndex]->pos.x, 0.0f, world.enemies[enemyIndex]->pos.z);
+	bullet.model.setTranslation(bullet.last_position.x, bullet.last_position.y, bullet.last_position.z);
+	bullet.velocity = newBulletData.velocity;
+	bullet.ttl = newBulletData.ttl;
+	bullet.power = newBulletData.power;
+	//asignar los valores de new bullet a bullet
+}
+
 void renderWorld() {
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
+	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
 
 	glDisable(GL_DEPTH_TEST);
 	//world.skyModel.translate(game->camera->eye.x, game->camera->eye.y - 10.0f, game->camera->eye.z);
@@ -346,6 +424,23 @@ void renderWorld() {
 
 	world.ground->render();
 	world.finish->render();
+
+
+
+	for (size_t i = 0; i < world.numBullets; i++)
+	{
+		sBullet& currentBullet = world.bullets[i];
+		if (currentBullet.isActive()) {
+			continue;
+		}
+		
+		//first check if we have build the collision model
+		//Vector3 currentPos = currentBullet.last_position;
+		//currentBullet.model.translate(currentPos.x, currentPos.y, currentPos.z);
+		//currentBullet.mesh->render();
+		renderMesh(GL_TRIANGLES, currentBullet.model, currentBullet.mesh, currentBullet.texture, currentBullet.shader, Game::instance->camera);
+	}
+
 
 	for (size_t i = 0; i < world.static_entities.size(); i++)
 	{
@@ -755,7 +850,9 @@ void handleEnemies(float seconds_elapsed) {
 		}
 		if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 		{
-			std::cout << "anim timer: " << enemy->animTimer << std::endl;
+			
+			
+			//std::cout << "anim timer: " << enemy->animTimer << std::endl;
 			if (enemy->currentAnim != ANIM_ID::ATTACK || (enemy->currentAnim == ANIM_ID::ATTACK && enemy->animTimer <= 0.0f))
 			{
 				enemy->currentAnim = ANIM_ID::ATTACK;
@@ -768,7 +865,25 @@ void handleEnemies(float seconds_elapsed) {
 				Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
 				enemy->pos = enemyCollision(enemy, targetPos);
 			}
-
+			if (!world.bulletOnce)
+			{
+				world.bulletOnce = true;
+				sBullet bullet;
+				bullet.ttl = 20.0f;
+				bullet.mesh = Mesh::Get("data/box.obj");
+				bullet.texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+				bullet.shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+				bullet.power = 1;
+				bullet.velocity = Vector3(30,30,30) * forward;
+				if (spawnBullet(bullet, i))
+				{
+					std::cout << "Bullet spawned" << std::endl;
+				}
+				else
+				{
+					std::cout << "Bullet NOT spawned" << std::endl;
+				}
+			}
 		}
 		Vector3 coll;
 		Vector3 collnorm;

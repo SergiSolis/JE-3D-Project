@@ -8,6 +8,21 @@ void World::loadWorld() {
 
 	player = new EntityPlayer();
 
+	//bullets.reserve(numBullets);
+
+	for (size_t i = 0; i < numBullets; i++)
+	{
+		bullets[i].ttl = 0.0f;
+		bullets[i].model = Matrix44();
+		bullets[i].last_position = Vector3();
+		bullets[i].mesh = Mesh::Get("data/box.obj");
+		bullets[i].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+		bullets[i].shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+		bullets[i].power = 1;
+		bullets[i].velocity = Vector3(20.0f, 20.0f, 20.0f);
+	}
+	
+
 	currentStage = STAGE_ID::PLAY;
 	stages.reserve(6);
 	stages.push_back(new titleStage());
