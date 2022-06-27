@@ -90,7 +90,7 @@ void EntityPlayer::render() {
 	//enable shader
 	mesh->shader->enable();
 	float t = fmod(time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
-	if (currentAnim == ANIM_ID::JUMP)
+	if (currentAnim == PLAYER_ANIM_ID::PLAYER_JUMP)
 	{
 		t = fmod(time, animations[currentAnim]->duration) / animations[currentAnim]->duration;
 	}
@@ -255,7 +255,7 @@ void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shad
 	//disable shader
 	a_shader->disable();
 
-	if (!game->world.cameraLocked) {
+	//if (!game->world.cameraLocked) {
 		a_mesh->renderBounding(model);
-	}
+	//}
 }

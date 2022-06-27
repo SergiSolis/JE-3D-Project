@@ -58,7 +58,7 @@ struct sPropViewData {
 class World {
 public:
 
-	float TIME_TRIAL_LVL_1 = 50.0f;
+	float TIME_TRIAL_LVL_1 = 200.0f;
 
 	Mesh* mesh = NULL;
 	Texture* texture = NULL;

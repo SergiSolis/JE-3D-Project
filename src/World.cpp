@@ -47,7 +47,7 @@ void World::loadWorld() {
 	viewDatas[1].mesh = Mesh::Get("data/wall_d.obj");
 	viewDatas[1].texture = Texture::Get("data/color-atlas.png");
 
-	viewDatas[2].mesh = Mesh::Get("data/box.obj");
+	viewDatas[2].mesh = Mesh::Get("data/exit.obj");
 	viewDatas[2].texture = Texture::Get("data/color-atlas.png");
 
 	viewDatas[3].mesh = Mesh::Get("data/enemy.mesh");
@@ -113,55 +113,40 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					entity->id = ENTITY_ID::ENTITY_MESH;
 					finish = entity;
 					//entities.push_back(entity);
+				}else if (index == 5) {
+					prop = viewDatas[2];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::ENTITY_MESH;
+					finish = entity;
+					//entities.push_back(entity);
 				}
-				else if (index == 5) {
+				else if (index == 6) {
 					prop = viewDatas[3];
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture);
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::WARRIOR);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 					enenmy->spawnPos = enenmy->pos;
 					enemies.push_back(enenmy);
 
 				}
-				else if (index == 6) {
+				//arquero
+				else if (index == 7) {
+					prop = viewDatas[3];
+					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::ARCHER);
+					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+					enenmy->spawnPos = enenmy->pos;
+					enemies.push_back(enenmy);
+
+				}
+				else if (index == 8) {
 					//prop = viewDatas[4];
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
 					EntityChest* entity = new EntityChest(cellModel, actualLevel);
 					chests.push_back(entity);
 
 				}
-				/*
-				else if (index == 6) {
-					prop = viewDatas[2];
-					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity);
-				}
-				else if (index == 7) {
-					prop = viewDatas[2];
-					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity);
-					cellModel.translate(0, 0.8f, 0);
-					EntityMesh* entity2 = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity2->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity2);
-				}
-				else if (index == 8) {
-					prop = viewDatas[2];
-					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity);
-					cellModel.translate(0, 0.8f, 0);
-					EntityMesh* entity2 = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity2->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity2);
-					cellModel.translate(0, 0.8f, 0);
-					EntityMesh* entity3 = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity3->id = ENTITY_ID::BOX_ID;
-					entities.push_back(entity3);
-				}
-				*/
 			}
 		}
 	}
@@ -181,15 +166,23 @@ void World::reloadLevel() {
 			sCell& cell = gamemap->getCell(i, j);
 			int index = (int)cell.type;
 			sPropViewData& prop = viewDatas[0];
-			if (index == 5) {
+			if (index == 6) {
 				prop = viewDatas[3];
 				//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture);
+				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::WARRIOR);
 				enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 				enenmy->spawnPos = enenmy->pos;
 				enemies.push_back(enenmy);
 			}
-			else if (index == 6) {
+			if (index == 7) {
+				prop = viewDatas[3];
+				//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
+				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::ARCHER);
+				enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+				enenmy->spawnPos = enenmy->pos;
+				enemies.push_back(enenmy);
+			}
+			else if (index == 8) {
 				//prop = viewDatas[4];
 				cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
 				EntityChest* entity = new EntityChest(cellModel, actualLevel);

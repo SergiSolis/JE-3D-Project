@@ -70,10 +70,13 @@ public:
 };
 
 void renderWorld();
+void renderEnemyWeapon(EntityEnemy* enemy);
+void renderEnemyGUI(EntityEnemy* enemy);
 void setCamera(Camera* cam, Matrix44 model);
 void runAnimation(Animation* anim, float time, Mesh* mesh, Texture* text, Matrix44 model,bool loop);
 Vector3 checkCollision(Vector3 target);
 Vector3 enemyCollision(EntityEnemy* player, Vector3 target);
+void bulletCollision(float seconds_elapsed);
 
 void addEntityInFront(Camera* cam, const char* meshName, const char* textName);
 EntityMesh* rayPick(Camera* cam);

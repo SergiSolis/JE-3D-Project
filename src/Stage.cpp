@@ -75,61 +75,26 @@ void playStage::update(float seconds_elapsed)
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
-	//std::cout << "Enemies:" << world.enemies.size() << std::endl;
+	std::cout << "Enemies:" << s_enemies.size() << std::endl;
 
-	Vector3 coll;
-	Vector3 collnorm;
-	Vector3 pushAway;
-	Vector3 returned;
-
-	for (size_t i = 0; i < world.numBullets; i++)
-	{
-		sBullet& currentBullet = world.bullets[i];
-		if (currentBullet.isActive())
-			continue;
-
-		//first check if we have build the collision model
-		if (!player->mesh->mesh->collision_model)
-			player->mesh->mesh->createCollisionModel();
-
-		CollisionModel3D* collision_model = (CollisionModel3D*) player->mesh->mesh->collision_model;
-		Vector3 currentPos = currentBullet.model.getTranslation();
-		Vector3 next = currentPos + (currentBullet.velocity * seconds_elapsed);
-		//Vector3 ray_origin = currentBullet->last_position;
-		//Vector3 ray_direction = currentBullet->model.getTranslation() - currentBullet->last_position;
-		//float max_ray_dist = ray_direction.length();
-		//float max_ray_dist = next.length();
-
-		//now check where the ray collides with mesh
-		//bool test = collision_model->rayCollision(currentPos.v, next.v, false, 0.0, max_ray_dist); //max ray distance
-
-		
-		currentBullet.last_position = currentPos;
-		currentBullet.model.setTranslation(next.x, next.y, next.z);
-		currentBullet.ttl -= seconds_elapsed;
-		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 0.75, coll, collnorm);
-		std::cout << "TTL: " << currentBullet.ttl << std::endl;
-		//if ray didnt collide
-		if (test == false)
-			continue;
-
-		currentBullet.ttl = -1.0f;
-		player->hearts -= 1;
-	}
+	bulletCollision(seconds_elapsed);
 
 
 	player->time += seconds_elapsed;
 
 	if (player->animTimer <= 0.0f)
 	{
-		player->currentAnim = ANIM_ID::IDLE;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_IDLE;
 	}
 
 	for (size_t i = 0; i < s_enemies.size(); i++)
 	{
-		
-
 		s_enemies[i]->hitTimer = max(0.0f, s_enemies[i]->hitTimer - seconds_elapsed);
+
+		if (s_enemies[i]->type == ENEMY_ID::ARCHER)
+		{
+			s_enemies[i]->shootTimer = max(0.0f, s_enemies[i]->shootTimer - seconds_elapsed);
+		}
 	}
 
 	for (size_t i = 0; i < s_enemies.size(); i++)
@@ -145,10 +110,16 @@ void playStage::update(float seconds_elapsed)
 		if (s_enemies[i]->animTimer <= 0.0f && s_enemies[i]->hearts <= 0) {
 			s_enemies.erase(s_enemies.begin() + i);
 		}
-		if (s_enemies[i]->currentAnim == ANIM_ID::DEAD)
+		if (s_enemies[i]->currentAnim == PLAYER_ANIM_ID::PLAYER_DEAD)
 		{
 			std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
 		}
+	}
+
+	if (s_enemies.size() <= 0)
+	{
+		EntityMesh* entityFinish = Game::instance->world.finish;
+		entityFinish->mesh = Mesh::Get("data/exit_open.obj");
 	}
 
 	player->animTimer = max(0.0f, player->animTimer - (seconds_elapsed / player->animDuration));
@@ -198,30 +169,30 @@ void playStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_W)) { 
 		playerVel = playerVel + (forward * playerSpeed); 
 		player->walkingBackwards = false;
-		player->currentAnim = ANIM_ID::WALK;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
 		world.sPressed = false;
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_S)) {
 		playerVel = playerVel - (forward * playerSpeed);
 		//player->model.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
 		player->walkingBackwards = true;
-		player->currentAnim = ANIM_ID::WALK;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
 		world.sPressed = true;
 
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_Q)) {
 		playerVel = playerVel - (right * playerSpeed);
-		player->currentAnim = ANIM_ID::WALK;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_E)) {
 		playerVel = playerVel + (right * playerSpeed);
-		player->currentAnim = ANIM_ID::WALK;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
 	}
 	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
-		player->currentAnim = ANIM_ID::RUN;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_RUN;
 	}
 	if (Input::isMousePressed(SDL_BUTTON_LMASK) && player->currentItem != ITEM_ID::NONE) {
-		player->currentAnim = ANIM_ID::ATTACK;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_ATTACK;
 		player->time = 0.0f;
 		player->animDuration = player->animations[player->currentAnim]->duration / 1.25;
 		player->animTimer = player->animations[player->currentAnim]->duration / 1.25;
@@ -244,7 +215,7 @@ void playStage::update(float seconds_elapsed)
 	}
 	if (player->isGrounded == false)
 	{
-		player->currentAnim = ANIM_ID::JUMP;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_JUMP;
 		playerVel[1] -= seconds_elapsed * 3;
 	}
 
@@ -256,7 +227,7 @@ void playStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_U)) {
 		for (size_t i = 0; i < world.enemies.size(); i++)
 		{
-			world.enemies[i]->sword->model.translateGlobal(10, 0, 0);
+			world.enemies[i]->weapon->model.translateGlobal(10, 0, 0);
 		}
 		
 	}
@@ -402,12 +373,14 @@ bool spawnBullet(sBullet& newBulletData, int enemyIndex) {
 
 	sBullet& bullet =world.bullets[index];
 	
+	bullet.mesh = newBulletData.mesh;
 	bullet.model = Matrix44();
 	bullet.last_position = Vector3(world.enemies[enemyIndex]->pos.x, 0.0f, world.enemies[enemyIndex]->pos.z);
-	bullet.model.setTranslation(bullet.last_position.x, bullet.last_position.y, bullet.last_position.z);
+	bullet.model.setTranslation(bullet.last_position.x, 0.75f, bullet.last_position.z);
 	bullet.velocity = newBulletData.velocity;
 	bullet.ttl = newBulletData.ttl;
 	bullet.power = newBulletData.power;
+	bullet.author = newBulletData.author;
 	//asignar los valores de new bullet a bullet
 }
 
@@ -438,7 +411,11 @@ void renderWorld() {
 		//Vector3 currentPos = currentBullet.last_position;
 		//currentBullet.model.translate(currentPos.x, currentPos.y, currentPos.z);
 		//currentBullet.mesh->render();
-		renderMesh(GL_TRIANGLES, currentBullet.model, currentBullet.mesh, currentBullet.texture, currentBullet.shader, Game::instance->camera);
+		Matrix44 model = currentBullet.model;
+		model.scale(2.0f, 2.0f, 2.0f);
+		model.rotate(s_enemies[currentBullet.author]->jaw * DEG2RAD, Vector3(0, 1, 0));
+		model.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+		renderMesh(GL_TRIANGLES, model, currentBullet.mesh, currentBullet.texture, currentBullet.shader, Game::instance->camera);
 	}
 
 
@@ -458,54 +435,79 @@ void renderWorld() {
 	{
 		EntityEnemy* enemy = world.enemies[i];
 		enemy->render();
-		enemy->resultSk = enemy->animations[enemy->currentAnim]->skeleton;
+		renderEnemyWeapon(enemy);
+		renderEnemyGUI(enemy);
+	}
+}
+
+void renderEnemyWeapon(EntityEnemy* enemy) {
+	enemy->resultSk = enemy->animations[enemy->currentAnim]->skeleton;
+	if (enemy->type == ENEMY_ID::WARRIOR)
+	{
 		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
 		handLocalMatrix.rotate(120 * DEG2RAD, Vector3(1, 0, 0));
 		handLocalMatrix.rotate(100 * DEG2RAD, Vector3(0, 1, 0));
 		handLocalMatrix.translateGlobal(20, 0, 20);
-		Matrix44& actualModel = enemy->sword->model;
+		Matrix44& actualModel = enemy->weapon->model;
 		actualModel = handLocalMatrix * enemy->visualModel;
-		enemy->swordModel = actualModel;
-		enemy->swordModel.scale(80.0f, 80.0f, 80.0f);
-		enemy->swordModel.translate(-0.05, 0, 0.35);
-		enemy->sword->mesh->renderBounding(enemy->swordModel);
-		enemy->sword->render();
+		enemy->weaponModel = actualModel;
+		enemy->weaponModel.scale(80.0f, 80.0f, 80.0f);
+		enemy->weaponModel.translate(-0.05, 0, 0.35);
+		enemy->weapon->mesh->renderBounding(enemy->weaponModel);
+	}
+	else
+	{
+		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_LeftHand", false);
+		handLocalMatrix.rotate(20 * DEG2RAD, Vector3(1, 0, 0));
+		handLocalMatrix.rotate(110 * DEG2RAD, Vector3(0, 0, 1));
+		handLocalMatrix.rotate(30 * DEG2RAD, Vector3(0, 1, 0));
+		handLocalMatrix.translateGlobal(5, 5, -10);
+		Matrix44& actualModel = enemy->weapon->model;
+		actualModel = handLocalMatrix * enemy->visualModel;
+		actualModel.scale(1.25f, 1.25f, 1.25f);
+	}
 
-		Vector3 toTarget = player->pos - enemy->pos;
-		float dist = toTarget.length();
+	enemy->weapon->render();
+}
 
-		//RENDER ALL GUI
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		
-		//Vector3 enemyPos = enemy->pos + Vector3(0, 4, 0);
-		Matrix44 ePos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * enemy->visualModel;
-		Vector3 enemyPos = ePos * Vector3(0, 1, 0);
-		enemyPos = enemyPos + Vector3(0, 2, 0);
-		//Vector3 enemyPos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * Vector3(0, 2, 0);
-		game->camera->updateViewMatrix();
-		game->camera->updateProjectionMatrix();
-		Vector3 playerScreen = game->camera->project(enemyPos, game->window_width, game->window_height);
+void renderEnemyGUI(EntityEnemy* enemy) {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	Vector3 toTarget = player->pos - enemy->pos;
+	float dist = toTarget.length();
 
-		Texture* heartTex = Texture::Get("data/heart.png");
+	//RENDER ALL GUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		for (size_t i = 0; i < enemy->hearts; i++)
+	//Vector3 enemyPos = enemy->pos + Vector3(0, 4, 0);
+	Matrix44 ePos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * enemy->visualModel;
+	Vector3 enemyPos = ePos * Vector3(0, 1, 0);
+	enemyPos = enemyPos + Vector3(0, 2, 0);
+	//Vector3 enemyPos = enemy->resultSk.getBoneMatrix("mixamorig_Head", false) * Vector3(0, 2, 0);
+	game->camera->updateViewMatrix();
+	game->camera->updateProjectionMatrix();
+	Vector3 playerScreen = game->camera->project(enemyPos, game->window_width, game->window_height);
+
+	Texture* heartTex = Texture::Get("data/heart.png");
+
+	for (size_t i = 0; i < enemy->hearts; i++)
+	{
+		//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
+		if (dist < 6.0f || enemy->markedTarget)
 		{
-			//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
-			if (dist < 6.0f || enemy->markedTarget)
-			{
-				if (playerScreen.z < 1.0f)
-					renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 50.0f, 50.0f, heartTex, true);
-			}
-			
+			if (playerScreen.z < 1.0f)
+				renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 50.0f, 50.0f, heartTex, true);
 		}
 
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
 	}
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
 }
 
 void setCamera(Camera *cam, Matrix44 model)
@@ -567,11 +569,11 @@ Vector3 checkCollision(Vector3 target)
 	
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
-		if (world.enemies[i]->sword->mesh->testSphereCollision(world.enemies[i]->swordModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f 
-			&& (world.enemies[i]->currentAnim == ANIM_ID::ATTACK && world.enemies[i]->animTimer >= 0.55f)) {
+		if (world.enemies[i]->weapon->mesh->testSphereCollision(world.enemies[i]->weaponModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f
+			&& (world.enemies[i]->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && world.enemies[i]->animTimer >= 0.55f)) {
 			player->hitTimer = player->animations[player->currentAnim]->duration;
 			player->hearts -= 1;
-			player->currentAnim = ANIM_ID::HIT;
+			player->currentAnim = PLAYER_ANIM_ID::PLAYER_HIT;
 			player->animDuration = player->animations[player->currentAnim]->duration;
 			player->animTimer = player->animations[player->currentAnim]->duration;
 		}
@@ -644,6 +646,53 @@ Vector3 enemyCollision(EntityEnemy* enemy , Vector3 target)
 		}
 	}
 	return target;
+}
+
+void bulletCollision(float seconds_elapsed) {
+	Vector3 coll;
+	Vector3 collnorm;
+	Vector3 pushAway;
+	Vector3 returned;
+
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
+
+	for (size_t i = 0; i < world.numBullets; i++)
+	{
+		sBullet& currentBullet = world.bullets[i];
+		if (currentBullet.isActive())
+			continue;
+
+		//first check if we have build the collision model
+		if (!player->mesh->mesh->collision_model)
+			player->mesh->mesh->createCollisionModel();
+
+		CollisionModel3D* collision_model = (CollisionModel3D*)player->mesh->mesh->collision_model;
+		Vector3 currentPos = currentBullet.model.getTranslation();
+		Vector3 next = currentPos + (currentBullet.velocity * seconds_elapsed);
+		//Vector3 ray_origin = currentBullet->last_position;
+		//Vector3 ray_direction = currentBullet->model.getTranslation() - currentBullet->last_position;
+		//float max_ray_dist = ray_direction.length();
+		//float max_ray_dist = next.length();
+
+		//now check where the ray collides with mesh
+		//bool test = collision_model->rayCollision(currentPos.v, next.v, false, 0.0, max_ray_dist); //max ray distance
+
+
+		currentBullet.last_position = currentPos;
+		currentBullet.model.setTranslation(next.x, next.y, next.z);
+		currentBullet.ttl -= seconds_elapsed;
+		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 1.0f, coll, collnorm);
+		//std::cout << "TTL: " << currentBullet.ttl << std::endl;
+		//if ray didnt collide
+		if (test == false)
+			continue;
+
+		currentBullet.ttl = -1.0f;
+		player->hearts -= 3;
+	}
 }
 
 void addEntityInFront(Camera* cam, const char* meshName, const char* textName) {
@@ -737,7 +786,7 @@ void checkIfFinish(Camera* cam) {
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	std::vector<EntityMesh*>& s_entities = Game::instance->world.static_entities;
+	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
 
 	Vector2 mouse = Input::mouse_position;
 
@@ -754,7 +803,7 @@ void checkIfFinish(Camera* cam) {
 
 	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
 
-	if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 2.0f))
+	if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 3.0f) && s_enemies.size() == 0)
 	{
 		world.levelDone = true;
 		world.currentStage = STAGE_ID::TRANSITION;
@@ -836,7 +885,6 @@ void handleEnemies(float seconds_elapsed) {
 		Matrix44 enemyModel = enemy->model;
 		Vector3 side = enemyModel.rotateVector(Vector3(1, 0, 0)).normalize();
 		Vector3 forward = enemyModel.rotateVector(Vector3(0, 0, -1)).normalize();
-
 		Vector3 toTarget = player->pos - enemy->pos;
 		float dist = toTarget.length();
 		toTarget.normalize();
@@ -844,47 +892,76 @@ void handleEnemies(float seconds_elapsed) {
 		float sideDot = side.dot(toTarget);
 		float forwardDot = forward.dot(toTarget);
 
-		if (forwardDot < 0.98f)
+		
+		if (enemy->type == ENEMY_ID::WARRIOR)
 		{
-			enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
-		}
-		if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
-		{
-			
-			
-			//std::cout << "anim timer: " << enemy->animTimer << std::endl;
-			if (enemy->currentAnim != ANIM_ID::ATTACK || (enemy->currentAnim == ANIM_ID::ATTACK && enemy->animTimer <= 0.0f))
+			if (forwardDot < 0.98f)
 			{
-				enemy->currentAnim = ANIM_ID::ATTACK;
-				enemy->time = 0.0f;
-				enemy->animDuration = player->animations[player->currentAnim]->duration / 1.25;
-				enemy->animTimer = player->animations[player->currentAnim]->duration / 1.25;
+				enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
 			}
-			enemy->markedTarget = true;
-			if (dist > 1.0f){
-				Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
-				enemy->pos = enemyCollision(enemy, targetPos);
-			}
-			if (!world.bulletOnce)
+			if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 			{
-				world.bulletOnce = true;
-				sBullet bullet;
-				bullet.ttl = 20.0f;
-				bullet.mesh = Mesh::Get("data/box.obj");
-				bullet.texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
-				bullet.shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
-				bullet.power = 1;
-				bullet.velocity = Vector3(30,30,30) * forward;
-				if (spawnBullet(bullet, i))
+				//std::cout << "anim timer: " << enemy->animTimer << std::endl;
+				if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_ATTACK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && enemy->animTimer <= 0.0f))
 				{
-					std::cout << "Bullet spawned" << std::endl;
+					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
+					enemy->time = 0.0f;
+					enemy->animDuration = player->animations[player->currentAnim]->duration / 1.25;
+					enemy->animTimer = player->animations[player->currentAnim]->duration / 1.25;
 				}
-				else
-				{
-					std::cout << "Bullet NOT spawned" << std::endl;
+				enemy->markedTarget = true;
+				if (dist > 1.0f) {
+					Vector3 targetPos = enemy->pos + (forward * 3.0f * seconds_elapsed);
+					enemy->pos = enemyCollision(enemy, targetPos);
 				}
 			}
 		}
+		else if (enemy->type == ENEMY_ID::ARCHER)
+		{
+			if (forwardDot < 0.999f)
+			{
+				enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
+			}
+			if ((dist < 15.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
+			{
+				
+
+				//std::cout << "anim timer: " << enemy->animTimer << std::endl;
+				if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_ATTACK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && enemy->animTimer <= 0.0f))
+				{
+					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
+					enemy->time = 0.0f;
+					enemy->animDuration = player->animations[player->currentAnim]->duration / 1.25;
+					enemy->animTimer = player->animations[player->currentAnim]->duration / 1.25;
+				}
+				enemy->markedTarget = true;
+				if (enemy->shootTimer <= 0.0f && enemy->type == ENEMY_ID::ARCHER)
+				{
+					enemy->shootTimer = 5.0f;
+					world.bulletOnce = true;
+					sBullet bullet;
+					bullet.ttl = 5.0f;
+					bullet.mesh = Mesh::Get("data/arrow.obj");
+					bullet.texture = Texture::Get("data/color-atlas.png");
+					bullet.shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+					bullet.power = 1;
+					//model.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
+					bullet.author = i;
+
+					bullet.velocity = Vector3(10, 10, 10) * forward;
+
+					if (spawnBullet(bullet, i))
+					{
+						std::cout << "Bullet spawned" << std::endl;
+					}
+					else
+					{
+						std::cout << "Bullet NOT spawned" << std::endl;
+					}
+				}
+			}
+		}
+
 		Vector3 coll;
 		Vector3 collnorm;
 		Vector3 pushAway;
@@ -895,17 +972,17 @@ void handleEnemies(float seconds_elapsed) {
 		if (player->currentItem != ITEM_ID::NONE)
 		{
 			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f 
-				&& (player->currentAnim == ANIM_ID::ATTACK && player->animTimer >= 0.55f)) {
+				&& (player->currentAnim == PLAYER_ANIM_ID::PLAYER_ATTACK && player->animTimer >= 0.55f)) {
 				enemy->time = 0.0f;
 				enemy->hitTimer = player->animations[player->currentAnim]->duration / 2;
 				enemy->hearts -= 1;
-				enemy->currentAnim = ANIM_ID::HIT;
+				enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_HIT;
 				enemy->animDuration = player->animations[player->currentAnim]->duration / 2;
 				enemy->animTimer = player->animations[player->currentAnim]->duration / 2;
 				if (enemy->hearts <= 0)
 				{
 					enemy->time = 0.0f;
-					enemy->currentAnim = ANIM_ID::DEAD;
+					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_DEAD;
 					enemy->animDuration = player->animations[player->currentAnim]->duration / 0.75f;
 					enemy->animTimer = player->animations[player->currentAnim]->duration / 0.75f;
 

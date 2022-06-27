@@ -78,15 +78,15 @@ public:
     void update(float dt);
 };
 
-enum ANIM_ID: uint8 {
-    IDLE,
-    SWORD_IDLE,
-    WALK,
-    RUN,
-    JUMP,
-    ATTACK,
-    HIT,
-    DEAD
+enum PLAYER_ANIM_ID: uint8 {
+    PLAYER_IDLE,
+    PLAYER_WEAPON_IDLE,
+    PLAYER_WALK,
+    PLAYER_RUN,
+    PLAYER_JUMP,
+    PLAYER_ATTACK,
+    PLAYER_HIT,
+    PLAYER_DEAD
 };
 
 enum ITEM_ID : uint8 {
@@ -104,7 +104,7 @@ public:
     ITEM_ID currentItem;
 
     std::vector<Animation*> animations;
-    ANIM_ID currentAnim;
+    PLAYER_ANIM_ID currentAnim;
     bool firstPerson;
     bool cameraLocked;
     bool isGrounded;
@@ -142,15 +142,15 @@ public:
         
         animations.reserve(8);
         animations.push_back(Animation::Get("data/idle.skanim"));
-        animations.push_back(Animation::Get("data/sword_idle.skanim"));
+        animations.push_back(Animation::Get("data/warrior_idle.skanim"));
         animations.push_back(Animation::Get("data/walk.skanim"));
         animations.push_back(Animation::Get("data/run.skanim"));
         animations.push_back(Animation::Get("data/jump.skanim"));
-        animations.push_back(Animation::Get("data/attack.skanim"));
+        animations.push_back(Animation::Get("data/warrior_attack.skanim"));
         animations.push_back(Animation::Get("data/hit.skanim"));
-        animations.push_back(Animation::Get("data/death.skanim"));
+        animations.push_back(Animation::Get("data/dead.skanim"));
         
-        currentAnim = ANIM_ID::IDLE;
+        currentAnim = PLAYER_ANIM_ID::PLAYER_IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
         Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
@@ -202,12 +202,25 @@ struct sBullet {
     }
 };
 
+enum ENEMY_ID : uint8 {
+    WARRIOR,
+    ARCHER,
+    BOSS
+};
+enum ENEMY_ANIM_ID : uint8 {
+    ENEMY_IDLE,
+    ENEMY_WALK,
+    ENEMY_ATTACK,
+    ENEMY_HIT,
+    ENEMY_DEAD
+};
+
 class EntityEnemy : public Entity
 {
 public:
     EntityMesh* mesh;
     std::vector<Animation*> animations;
-    ANIM_ID currentAnim;
+    ENEMY_ANIM_ID currentAnim;
 
     Vector3 pos;
     Vector3 vel;
@@ -217,10 +230,10 @@ public:
     float jaw;
 
     Matrix44 visualModel;
-    Matrix44 swordModel;
+    Matrix44 weaponModel;
     Skeleton resultSk;
 
-    EntityMesh* sword;
+    EntityMesh* weapon;
 
     bool markedTarget;
     int hearts;
@@ -229,31 +242,47 @@ public:
     float animDuration;
     float time;
 
+    float shootTimer;
+
+    ENEMY_ID type;
+
     //const int numBullets = 10;
     //std::vector<sBullet*> bullets;
 
-    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, ENTITY_ID e_id = ENTITY_ID::ENTITY_ENEMY) {
-        id = e_id;
+    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, ENEMY_ID type_id = ENEMY_ID::WARRIOR) {
+        type = type_id;
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
-        animations.reserve(8);
-        animations.push_back(Animation::Get("data/idle.skanim"));
-        animations.push_back(Animation::Get("data/sword_idle.skanim"));
-        animations.push_back(Animation::Get("data/walk.skanim"));
-        animations.push_back(Animation::Get("data/run.skanim"));
-        animations.push_back(Animation::Get("data/jump.skanim"));
-        animations.push_back(Animation::Get("data/attack.skanim"));
-        animations.push_back(Animation::Get("data/hit.skanim"));
-        animations.push_back(Animation::Get("data/death.skanim"));
-
-        currentAnim = ANIM_ID::SWORD_IDLE;
+        animations.reserve(5);
+        if (type == ENEMY_ID::WARRIOR)
+        {
+            animations.push_back(Animation::Get("data/warrior_idle.skanim"));
+            animations.push_back(Animation::Get("data/walk.skanim"));
+            animations.push_back(Animation::Get("data/warrior_attack.skanim"));
+            animations.push_back(Animation::Get("data/hit.skanim"));
+            animations.push_back(Animation::Get("data/dead.skanim")); 
+        }
+        else if(type == ENEMY_ID::ARCHER) {
+            animations.push_back(Animation::Get("data/archer_idle.skanim"));
+            animations.push_back(Animation::Get("data/walk.skanim"));
+            animations.push_back(Animation::Get("data/archer_attack.skanim"));
+            animations.push_back(Animation::Get("data/archer_hit.skanim"));
+            animations.push_back(Animation::Get("data/archer_dead.skanim"));
+        }
+        currentAnim = ENEMY_ANIM_ID::ENEMY_IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
         Mesh* playerMesh = Mesh::Get("data/skeleton.mesh");
-        //Mesh* playerMesh = Mesh::Get("data/skeleton.obj");
 
         mesh = new EntityMesh(GL_TRIANGLES, model, n_mesh, tex, shader);
-        sword = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), shader);
+        
+        if (type == ENEMY_ID::WARRIOR) {
+            weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), shader);
+        }
+        else if (type == ENEMY_ID::ARCHER) {
+            weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/bow.obj"), Texture::Get("data/color-atlas.png"), shader);
+        }
+        
 
         jaw = 180;
         markedTarget = false;
@@ -261,13 +290,9 @@ public:
         hitTimer = 0.0f;
         animTimer = 0.0f;
         time = 0.0f;
-        /*
-        bullets.reserve(numBullets);
-        for (size_t i = 0; i < numBullets; i++)
-        {
-            bullets[i] = new sBullet(model);
+        if (type == ENEMY_ID::ARCHER) {
+            shootTimer = 0.0f;
         }
-        */
     }
     void render();
     void update(float dt);

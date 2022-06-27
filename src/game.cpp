@@ -12,29 +12,14 @@
 #include "World.h"
 #include "Stage.h"
 
-//some globals
-Mesh* mesh = NULL;
-Texture* texture = NULL;
-Shader* shader = NULL;
-
-bool cameraLocked = true;
-
-Animation* anim = NULL;
 float angle = 0;
 float mouse_speed = 100.0f;
 FBO* fbo = NULL;
 
 Game* Game::instance = NULL;
 
-std::vector<EntityMesh*> entities;
-EntityMesh* selectedEntity = NULL;
 
-bool firstPerson = true;
 
-Mesh* groundMesh;
-Texture* groundTex;
-
-//std::vector<Vector3> points;
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -60,20 +45,6 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	camera = new Camera();
 	camera->lookAt(Vector3(0.f,50.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,100000.f); //set the projection, we want to be perspective
-
-	groundMesh = new Mesh();
-	groundMesh->createPlane(1000);
-	groundTex = Texture::Get("data/ground.jpg");
-
-	//load one texture without using the Texture Manager (Texture::Get would use the manager)
-	
-
-	// example of loading Mesh from Mesh Manager
-	mesh = Mesh::Get("data/island.ASE");
-	texture = Texture::Get("data/island_color.tga");
-	
-	// example of shader loading using the shaders manager
-	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
