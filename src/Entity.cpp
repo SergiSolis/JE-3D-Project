@@ -154,7 +154,7 @@ void EntityEnemy::render() {
 	//enable shader
 	mesh->shader->enable();
 
-	float t = fmod(time / 1.5, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	float t = fmod(time / 1.75, animations[currentAnim]->duration) / animations[currentAnim]->duration;
 	animations[currentAnim]->assignTime(t * animations[currentAnim]->duration);
 
 	resultSk = animations[currentAnim]->skeleton;

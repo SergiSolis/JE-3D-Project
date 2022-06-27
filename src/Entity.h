@@ -268,6 +268,15 @@ public:
     void update(float dt);
 };
 
+struct sBullet {
+    Matrix44 model;
+    Vector3 last_position;
+    float ttl;
+    float power;
+    int author;
+    int type;
+};
+
 class EntityCamera : public Entity
 {
 public:

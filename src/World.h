@@ -123,6 +123,7 @@ public:
 	void setConfiguration();
 	void saveGame();
 	void importMap(std::vector<EntityMesh*>& entities);
+	void reloadLevel();
 	void unifyCollidableEntities();
 	void addEntity();
 	void deleteEntity();

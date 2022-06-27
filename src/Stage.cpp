@@ -755,12 +755,13 @@ void handleEnemies(float seconds_elapsed) {
 		}
 		if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 		{
-			if (enemy->currentAnim != ANIM_ID::ATTACK)
+			std::cout << "anim timer: " << enemy->animTimer << std::endl;
+			if (enemy->currentAnim != ANIM_ID::ATTACK || (enemy->currentAnim == ANIM_ID::ATTACK && enemy->animTimer <= 0.0f))
 			{
 				enemy->currentAnim = ANIM_ID::ATTACK;
 				enemy->time = 0.0f;
-				enemy->animDuration = player->animations[player->currentAnim]->duration;
-				enemy->animTimer = player->animations[player->currentAnim]->duration;
+				enemy->animDuration = player->animations[player->currentAnim]->duration / 1.25;
+				enemy->animTimer = player->animations[player->currentAnim]->duration / 1.25;
 			}
 			enemy->markedTarget = true;
 			if (dist > 1.0f){

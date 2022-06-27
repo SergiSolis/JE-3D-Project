@@ -152,7 +152,45 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 	}
 }
 
+void World::reloadLevel() {
+	enemies.clear();
+	chests.clear();
+	player->currentItem = ITEM_ID::NONE;
+	for (size_t i = 0; i < gamemap->width; i++)
+	{
+		for (size_t j = 0; j < gamemap->height; j++)
+		{
+			Matrix44 cellModel;
+			cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
+			cellModel.scale(3, 3, 3);
+			sCell& cell = gamemap->getCell(i, j);
+			int index = (int)cell.type;
+			sPropViewData& prop = viewDatas[0];
+			if (index == 5) {
+				prop = viewDatas[3];
+				//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
+				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture);
+				enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+				enenmy->spawnPos = enenmy->pos;
+				enemies.push_back(enenmy);
+			}
+			else if (index == 6) {
+				//prop = viewDatas[4];
+				cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+				EntityChest* entity = new EntityChest(cellModel, actualLevel);
+				chests.push_back(entity);
+
+			}
+			else continue;
+		}
+	}
+}
+
 void  World::unifyCollidableEntities() {
+	if (!collidable_entities.empty())
+	{
+		collidable_entities.clear();
+	}
 	for (size_t i = 0; i < static_entities.size(); i++)
 	{
 		EntityMesh* entity = static_entities[i];
@@ -209,9 +247,8 @@ void World::loadLevel() {
 			return;
 		}
 		static_entities.clear();
-		enemies.clear();
 		collidable_entities.clear();
-
+		enemies.clear();
 		std::string s = std::to_string(actualLevel);
 		char const* level = s.c_str();
 		char i_path[100] = "data/lvl";
@@ -228,6 +265,9 @@ void World::loadLevel() {
 	else {
 		player->pos = spawnPos;
 		timeTrial = TIME_TRIAL_LVL_1;
+		reloadLevel();
+		unifyCollidableEntities();
+		/*
 		for (size_t i = 0; i < enemies.size(); i++)
 		{
 			enemies[i]->markedTarget = false;
@@ -236,6 +276,7 @@ void World::loadLevel() {
 			enemies[i]->hitTimer = 0.0f;
 			enemies[i]->jaw = 180;
 		}
+		*/
 	}
 	
 	player->hearts = 3;
