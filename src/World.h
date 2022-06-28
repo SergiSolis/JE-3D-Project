@@ -55,6 +55,20 @@ struct sPropViewData {
 	Texture* texture;
 };
 
+enum ACTION_ID : uint8 {
+	ANY_ACTION,
+	WIN,
+	DEAD,
+	OPEN_CHEST
+};
+	
+
+struct levelInfo {
+	int level;
+	ACTION_ID tag;
+	float space_pressed;
+};
+
 class World {
 public:
 
@@ -80,8 +94,10 @@ public:
 	std::vector<EntityMesh*> collidable_entities;
 
 	EntityMesh* finish;
-	int actualLevel;
-	bool levelDone;
+	levelInfo level_info;
+
+	//int actualLevel;
+	//bool levelDone;
 
 	EntityMesh* selectedEntity;
 

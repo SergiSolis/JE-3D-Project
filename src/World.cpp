@@ -59,14 +59,15 @@ void World::loadWorld() {
 	viewDatas[5].mesh = Mesh::Get("data/chest.obj");
 	viewDatas[5].texture = Texture::Get("data/color-atlas.png");
 
-	actualLevel = 1;
+	level_info.level = 1;
 
 	gamemap = new GameMap();
 	gamemap = loadGameMap("data/lvl1.map");
 	importMap(static_entities);
 	unifyCollidableEntities();
 
-	levelDone = false;
+	level_info.tag = ACTION_ID::ANY_ACTION;
+	level_info.space_pressed = 0.0f;
 
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 }
@@ -146,7 +147,7 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				else if (index == 8) {
 					//prop = viewDatas[4];
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
-					EntityChest* entity = new EntityChest(cellModel, actualLevel);
+					EntityChest* entity = new EntityChest(cellModel, level_info.level);
 					chests.push_back(entity);
 
 				}
@@ -188,7 +189,7 @@ void World::reloadLevel() {
 			else if (index == 8) {
 				//prop = viewDatas[4];
 				cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
-				EntityChest* entity = new EntityChest(cellModel, actualLevel);
+				EntityChest* entity = new EntityChest(cellModel, level_info.level);
 				chests.push_back(entity);
 
 			}
@@ -251,16 +252,16 @@ GameMap* loadGameMap(const char* filename)
 
 void World::loadLevel() {
 	
-	if (levelDone) {
-		actualLevel += 1;
-		if (actualLevel == 4) {
+	if (level_info.tag == ACTION_ID::WIN) {
+		level_info.level += 1;
+		if (level_info.level == 4) {
 			currentStage = STAGE_ID::END;
 			return;
 		}
 		static_entities.clear();
 		collidable_entities.clear();
 		enemies.clear();
-		std::string s = std::to_string(actualLevel);
+		std::string s = std::to_string(level_info.level);
 		char const* level = s.c_str();
 		char i_path[100] = "data/lvl";
 		char const* path = strcat(i_path, level);
@@ -271,7 +272,7 @@ void World::loadLevel() {
 		importMap(static_entities);
 		unifyCollidableEntities();
 		timeTrial = TIME_TRIAL_LVL_1;
-		levelDone = false;
+		level_info.tag == ACTION_ID::ANY_ACTION;
 	}
 	else {
 		player->pos = spawnPos;
