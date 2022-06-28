@@ -23,7 +23,8 @@ void World::loadWorld() {
 	}
 	
 
-	currentStage = STAGE_ID::MENU;
+	currentStage = STAGE_ID::TITLE;
+	titleOption = TITLE_OPTIONS::PLAY_GAME;
 	menuOption = MENU_OPTIONS::RETURN;
 
 	stages.reserve(7);
@@ -269,38 +270,37 @@ void World::loadLevel() {
 			currentStage = STAGE_ID::END;
 			return;
 		}
-		static_entities.clear();
-		collidable_entities.clear();
-		enemies.clear();
-		std::string s = std::to_string(level_info.level);
-		char const* level = s.c_str();
-		char i_path[100] = "data/lvl";
-		char const* path = strcat(i_path, level);
-		path = strcat(i_path, ".map");
-		std::cout << path << std::endl;
+		
+	}
 
-		gamemap = loadGameMap(path);
-		importMap(static_entities);
-		unifyCollidableEntities();
-		timeTrial = TIME_TRIAL_LVL_1;
-		level_info.tag == ACTION_ID::NO_ACTION;
+	if (level_info.level == 1) {
+		player->currentItem = ITEM_ID::NONE;
 	}
-	else {
-		player->pos = spawnPos;
-		timeTrial = TIME_TRIAL_LVL_1;
-		reloadLevel();
-		unifyCollidableEntities();
-		/*
-		for (size_t i = 0; i < enemies.size(); i++)
-		{
-			enemies[i]->markedTarget = false;
-			enemies[i]->pos = enemies[i]->spawnPos;
-			enemies[i]->hearts = 3;
-			enemies[i]->hitTimer = 0.0f;
-			enemies[i]->jaw = 180;
-		}
-		*/
+	else if (level_info.level == 0)
+	{
+		player->currentItem = ITEM_ID::SWORD;
 	}
+
+	static_entities.clear();
+	collidable_entities.clear();
+	chests.clear();
+	enemies.clear();
+	std::string s = std::to_string(level_info.level);
+	char const* level = s.c_str();
+	char i_path[100] = "data/lvl";
+	char const* path = strcat(i_path, level);
+	path = strcat(i_path, ".map");
+	std::cout << path << std::endl;
+
+	gamemap = loadGameMap(path);
+	importMap(static_entities);
+	unifyCollidableEntities();
+	if (level_info.level != 0) {
+		
+		timeTrial = TIME_TRIAL_LVL_1;
+	}
+	
+	level_info.tag == ACTION_ID::NO_ACTION;
 	
 	player->hearts = 3;
 	player->hitTimer = 0.0f;

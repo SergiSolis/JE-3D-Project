@@ -60,7 +60,8 @@ enum ACTION_ID : uint8 {
 	WIN,
 	DEAD,
 	OPEN_CHEST,
-	PAUSE
+	PAUSE,
+	PAUSE_TUTORIAL,
 };
 	
 
@@ -68,6 +69,12 @@ struct levelInfo {
 	int level;
 	ACTION_ID tag;
 	float space_pressed;
+};
+
+enum TITLE_OPTIONS : uint8 {
+	PLAY_GAME,
+	PLAY_TUTORIAL,
+	PLAY_EXIT,
 };
 
 enum MENU_OPTIONS : uint8 {
@@ -103,6 +110,7 @@ public:
 	EntityMesh* finish;
 
 	levelInfo level_info;
+	TITLE_OPTIONS titleOption;
 	MENU_OPTIONS menuOption;
 
 	EntityMesh* selectedEntity;

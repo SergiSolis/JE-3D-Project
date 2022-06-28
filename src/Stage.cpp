@@ -14,7 +14,7 @@ void titleStage::render()
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 	// set the clear color (the background color)
-	glClearColor(0.0, 1.0, 1.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	// set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -26,7 +26,38 @@ void titleStage::render()
 	// set the camera as default
 	game->camera->enable();
 
-	//renderWorld();
+	drawText(200, 60, "TITLE", Vector3(1, 0, 1), 10);
+
+	if (world.titleOption == TITLE_OPTIONS::PLAY_GAME)
+	{
+		if (int(game->time) % 2 == 0) {
+			drawText(100, 200, "PLAY", Vector3(1, 1, 1), 6);
+		}
+	}
+	else
+	{
+		drawText(100, 200, "PLAY", Vector3(1, 1, 1), 6);
+	}
+	if (world.titleOption == TITLE_OPTIONS::PLAY_TUTORIAL)
+	{
+		if (int(game->time) % 2 == 0) {
+			drawText(100, 260, "TUTORIAL", Vector3(1, 1, 1), 6);
+		}
+	}
+	else
+	{
+		drawText(100, 260, "TUTORIAL", Vector3(1, 1, 1), 6);
+	}
+	if (world.titleOption == TITLE_OPTIONS::PLAY_EXIT)
+	{
+		if (int(game->time) % 2 == 0) {
+			drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
+		}
+	}
+	else
+	{
+		drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
+	}
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
 }
@@ -36,10 +67,7 @@ void titleStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE))
-	{
 
-	}
 	if (Input::wasKeyPressed(SDL_SCANCODE_K))
 	{
 
@@ -49,11 +77,90 @@ void titleStage::update(float seconds_elapsed)
 		world.level_info.tag = ACTION_ID::PAUSE;
 		world.currentStage = STAGE_ID::MENU;
 	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_UP)) {
+		world.titleOption = static_cast<TITLE_OPTIONS>((world.titleOption - 1) % (TITLE_OPTIONS::PLAY_EXIT + 1));
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_DOWN)) {
+		world.titleOption = static_cast<TITLE_OPTIONS>((world.titleOption + 1) % (TITLE_OPTIONS::PLAY_EXIT + 1));
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.titleOption == TITLE_OPTIONS::PLAY_GAME)
+	{
+		world.titleOption = TITLE_OPTIONS::PLAY_GAME;
+		world.level_info.level = 1;
+		world.level_info.tag = ACTION_ID::NO_ACTION;
+		world.loadLevel();
+		world.currentStage = STAGE_ID::PLAY;
+	}
+	else if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.titleOption == TITLE_OPTIONS::PLAY_TUTORIAL)
+	{
+		world.titleOption = TITLE_OPTIONS::PLAY_GAME;
+		world.level_info.level = 0;
+		world.level_info.tag = ACTION_ID::NO_ACTION;
+		world.loadLevel();
+		world.currentStage = STAGE_ID::TUTORIAL;
+	}
+	else if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.titleOption == TITLE_OPTIONS::PLAY_EXIT)
+	{
+		game->must_exit = true;
+	}
 }
 
 void tutorialStage::render()
 {
-	
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	// set the clear color (the background color)
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	// set flags
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	// Clear the window and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set the camera as default
+	game->camera->enable();
+
+	renderWorld();
+
+	if (world.currentStage == STAGE_ID::TUTORIAL)
+		setCamera(game->camera, player->model);
+
+	player->render();
+
+	playerInventory();
+
+	//Draw the floor grid
+	//drawGrid();
+
+	glDisable(GL_BLEND);
+
+	playerGUI();
+
+	//render the FPS, Draw Calls, etc
+	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
+	drawText(2, 50, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
+
+	//RENDER ALL GUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	Texture* controlsTex = Texture::Get("data/controls.png");
+	renderGUI(600, 100, 300.0f, 100.0f, controlsTex, true);
+
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+
+	//swap between front buffer and back buffer
+	SDL_GL_SwapWindow(game->window);
 }
 
 void tutorialStage::update(float seconds_elapsed)
@@ -61,23 +168,168 @@ void tutorialStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE))
+
+	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
+	std::cout << "Enemies:" << s_enemies.size() << std::endl;
+
+	bulletCollision(seconds_elapsed);
+
+	world.level_info.space_pressed = max(0.0f, world.level_info.space_pressed - seconds_elapsed);
+
+	player->time += seconds_elapsed;
+
+	if (player->animTimer <= 0.0f)
 	{
+		if (player->currentItem == ITEM_ID::NONE)
+		{
+			player->currentAnim = PLAYER_ANIM_ID::PLAYER_IDLE;
+		}
+		else {
+			player->currentAnim = PLAYER_ANIM_ID::PLAYER_WEAPON_IDLE;
+		}
 
 	}
+
+	for (size_t i = 0; i < s_enemies.size(); i++)
+	{
+		s_enemies[i]->hitTimer = max(0.0f, s_enemies[i]->hitTimer - seconds_elapsed);
+
+		if (s_enemies[i]->type == ENEMY_ID::ARCHER)
+		{
+			s_enemies[i]->shootTimer = max(0.0f, s_enemies[i]->shootTimer - seconds_elapsed);
+		}
+	}
+
+	for (size_t i = 0; i < s_enemies.size(); i++)
+	{
+		s_enemies[i]->time += seconds_elapsed;
+		s_enemies[i]->animTimer = max(0.0f, s_enemies[i]->animTimer - (seconds_elapsed / s_enemies[i]->animDuration));
+
+		if (s_enemies[i]->animTimer <= 0.0f && s_enemies[i]->hearts <= 0) {
+			s_enemies.erase(s_enemies.begin() + i);
+		}
+		if (s_enemies[i]->currentAnim == PLAYER_ANIM_ID::PLAYER_DEAD)
+		{
+			std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
+		}
+	}
+
+	if (s_enemies.size() <= 0)
+	{
+		EntityMesh* entityFinish = Game::instance->world.finish;
+		entityFinish->mesh = Mesh::Get("data/exit_open.obj");
+
+	}
+
+	player->animTimer = max(0.0f, player->animTimer - (seconds_elapsed / player->animDuration));
+
+	player->jumpLock = max(0.0f, player->jumpLock - seconds_elapsed);
+	player->hitTimer = max(0.0f, player->hitTimer - seconds_elapsed);
+
+	float playerSpeed = 10.0f * seconds_elapsed;
+	float rotateSpeed = 120.0f * seconds_elapsed;
+	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
+		world.currentStage = STAGE_ID::EDITOR;
+	}
+	if (player->firstPerson)
+	{
+		player->pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
+		player->jaw -= Input::mouse_delta.x * 5.0f * seconds_elapsed;
+		Input::centerMouse();
+		SDL_ShowCursor(false);
+	}
+	else {
+		player->pitch -= Input::mouse_delta.y * 5.0f * seconds_elapsed;
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) player->jaw += rotateSpeed;
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) player->jaw -= rotateSpeed;
+	}
+	Matrix44 playerRotation;
+	playerRotation.rotate(player->jaw * DEG2RAD, Vector3(0, 1, 0));
+	Vector3 forward = playerRotation.rotateVector(Vector3(0, 0, -1));
+	Vector3 right = playerRotation.rotateVector(Vector3(1, 0, 0));
+	Vector3 jump = playerRotation.rotateVector(Vector3(0, 1, 0));
+	Vector3 playerVel;
+
+
+	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT) && player->isGrounded == true) {
+		playerSpeed = 20.0f * seconds_elapsed;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_W)) {
+		playerVel = playerVel + (forward * playerSpeed);
+		player->walkingBackwards = false;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
+		world.sPressed = false;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_S)) {
+		playerVel = playerVel - (forward * playerSpeed);
+		//player->model.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
+		player->walkingBackwards = true;
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
+		world.sPressed = true;
+
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_Q)) {
+		playerVel = playerVel - (right * playerSpeed);
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_E)) {
+		playerVel = playerVel + (right * playerSpeed);
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_WALK;
+	}
+	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) {
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_RUN;
+	}
+	if (Input::isMousePressed(SDL_BUTTON_LMASK) && player->currentItem != ITEM_ID::NONE) {
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_ATTACK;
+		player->time = 0.0f;
+		player->animDuration = player->animations[player->currentAnim]->duration / 1.25;
+		player->animTimer = player->animations[player->currentAnim]->duration / 1.25;
+	}
+
 	if (Input::wasKeyPressed(SDL_SCANCODE_K))
 	{
-
-	}
-	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE))
-	{
-
+		world.level_info.tag = ACTION_ID::WIN;
+		player->currentItem = ITEM_ID::SWORD;
+		world.currentStage = STAGE_ID::TRANSITION;
 	}
 	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
 	{
-		world.level_info.tag = ACTION_ID::PAUSE;
+		world.level_info.tag = ACTION_ID::PAUSE_TUTORIAL;
 		world.currentStage = STAGE_ID::MENU;
 	}
+	//jump
+	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true && world.level_info.space_pressed <= 0.0f) {
+		player->time = 0.0f;
+		player->isGrounded = false;
+		player->animDuration = player->animations[player->currentAnim]->duration / 1.5;
+		player->animTimer = player->animations[player->currentAnim]->duration / 1.5;
+
+		//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
+		player->jumpLock = 0.2f;
+	}
+
+	if (player->jumpLock != 0.0f)
+	{
+		playerVel[1] += 0.15f;
+	}
+	if (player->isGrounded == false)
+	{
+		player->currentAnim = PLAYER_ANIM_ID::PLAYER_JUMP;
+		playerVel[1] -= seconds_elapsed * 3;
+	}
+
+	if (Input::isKeyPressed(SDL_SCANCODE_G)) {
+		takeEntity(game->camera);
+		checkIfFinish(game->camera);
+	}
+
+	Vector3 targetPos = player->pos + playerVel;
+
+	player->pos = checkCollision(targetPos);
+	//player->pos = targetPos;
+
+	handleEnemies(seconds_elapsed);
+
 }
 
 void playStage::render()
@@ -164,13 +416,8 @@ void playStage::update(float seconds_elapsed)
 	for (size_t i = 0; i < s_enemies.size(); i++)
 	{
 		s_enemies[i]->time += seconds_elapsed;
-		//std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
 		s_enemies[i]->animTimer = max(0.0f, s_enemies[i]->animTimer - (seconds_elapsed / s_enemies[i]->animDuration));
-		/*if (s_enemies[i]->animTimer <= 0.0f && s_enemies[i]->currentAnim != ANIM_ID::DEAD)
-		{
-			s_enemies[i]->currentAnim = ANIM_ID::SWORD_IDLE;
-		}
-		*/
+
 		if (s_enemies[i]->animTimer <= 0.0f && s_enemies[i]->hearts <= 0) {
 			s_enemies.erase(s_enemies.begin() + i);
 		}
@@ -188,16 +435,10 @@ void playStage::update(float seconds_elapsed)
 	}
 
 	player->animTimer = max(0.0f, player->animTimer - (seconds_elapsed / player->animDuration));
-	//std::cout << "Anim duration: " << player->animTimer << std::endl;
-	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 
 	player->jumpLock = max(0.0f, player->jumpLock - seconds_elapsed);
 	player->hitTimer = max(0.0f, player->hitTimer - seconds_elapsed);
 	
-	
-	//example
-	world.angle += (float)seconds_elapsed * 10.0f;
-
 	world.timeTrial -= seconds_elapsed;
 	if (world.timeTrial <= 0.0f || player->hearts <= 0) {
 		world.level_info.tag = ACTION_ID::DEAD;
@@ -336,46 +577,43 @@ void transitionStage::render()
 	// set the camera as default
 	game->camera->enable();
 
-	if (world.level_info.level == 1 )
-	{
-		if (world.level_info.tag == ACTION_ID::OPEN_CHEST) {
-			drawText(100, 80, "YOU HAVE OBTAINED", Vector3(1, 1, 1), 6);
-			drawText(260, 160, "A SWORD", Vector3(1, 1, 1), 6);
 
-			//RENDER ALL GUI
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_CULL_FACE);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	if (world.level_info.tag == ACTION_ID::OPEN_CHEST) {
+		drawText(100, 80, "YOU HAVE OBTAINED", Vector3(1, 1, 1), 6);
+		drawText(260, 160, "A SWORD", Vector3(1, 1, 1), 6);
 
-			Texture* swordTex = Texture::Get("data/sword.png");
-			renderGUI(400, 350, 200.0f, 200.0f, swordTex, true);
+		//RENDER ALL GUI
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
-			glEnable(GL_DEPTH_TEST);
-			glEnable(GL_CULL_FACE);
-			glDisable(GL_BLEND);
-
-			if (int(game->time) % 2 == 0) {
-				drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
-			}
+		Texture* swordTex = Texture::Get("data/sword.png");
+		renderGUI(400, 350, 200.0f, 200.0f, swordTex, true);
 
 
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+
+		if (int(game->time) % 2 == 0) {
+			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
 		}
-		if (world.level_info.tag == ACTION_ID::WIN) {
-			drawText(80, 80, "YOU WIN THE LEVEL", Vector3(1, 1, 1), 6);
-			if (int(game->time) % 2 == 0) {
-				drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
-			}
-		}
-		else if (world.level_info.tag == ACTION_ID::DEAD) {
-			drawText(80, 80, "YOU LOSE THE LEVEL", Vector3(1, 1, 1), 6);
-			if (int(game->time) % 2 == 0) {
-				drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
-			}
+
+
+	}
+	if (world.level_info.tag == ACTION_ID::WIN) {
+		drawText(80, 80, "YOU WIN THE LEVEL", Vector3(1, 1, 1), 6);
+		if (int(game->time) % 2 == 0) {
+			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
 		}
 	}
-	
+	else if (world.level_info.tag == ACTION_ID::DEAD) {
+		drawText(80, 80, "YOU LOSE THE LEVEL", Vector3(1, 1, 1), 6);
+		if (int(game->time) % 2 == 0) {
+			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
+		}
+	}
 
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
@@ -390,14 +628,12 @@ void transitionStage::update(float seconds_elapsed)
 	world.level_info.space_pressed = 2.0f;
 
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
-		if (world.level_info.level == 1)
-		{
-			if (world.level_info.tag == ACTION_ID::OPEN_CHEST) {
-				world.currentStage = STAGE_ID::PLAY;
-			}
-			else{
-				world.loadLevel();
-			}
+
+		if (world.level_info.tag == ACTION_ID::OPEN_CHEST) {
+			world.currentStage = STAGE_ID::PLAY;
+		}
+		else{
+			world.loadLevel();
 		}
 		
 	}if (Input::wasKeyPressed(SDL_SCANCODE_K))
@@ -422,7 +658,6 @@ void editorStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-
 	float speed = seconds_elapsed * 10; // the speed is defined by the seconds_elapsed so it goes constant
 	if (Input::wasKeyPressed(SDL_SCANCODE_TAB)) {
 		world.currentStage = STAGE_ID::PLAY;
@@ -517,11 +752,17 @@ void menuStage::update(float seconds_elapsed)
 	if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.menuOption == MENU_OPTIONS::RETURN)
 	{
 		world.menuOption = MENU_OPTIONS::RETURN;
-		if (world.level_info.level == 0)
+		if (world.level_info.level == 0 && world.level_info.tag == ACTION_ID::PAUSE)
 		{
 			world.level_info.tag = ACTION_ID::NO_ACTION;
 			world.currentStage = STAGE_ID::TITLE;
-		}else{
+		}
+		else if (world.level_info.level == 0 && world.level_info.tag == ACTION_ID::PAUSE_TUTORIAL)
+		{
+			world.level_info.tag = ACTION_ID::NO_ACTION;
+			world.currentStage = STAGE_ID::TUTORIAL;
+		}
+		else {
 			world.level_info.tag = ACTION_ID::NO_ACTION;
 			world.currentStage = STAGE_ID::PLAY;
 		}
