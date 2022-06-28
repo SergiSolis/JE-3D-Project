@@ -56,10 +56,11 @@ struct sPropViewData {
 };
 
 enum ACTION_ID : uint8 {
-	ANY_ACTION,
+	NO_ACTION,
 	WIN,
 	DEAD,
-	OPEN_CHEST
+	OPEN_CHEST,
+	PAUSE
 };
 	
 
@@ -67,6 +68,12 @@ struct levelInfo {
 	int level;
 	ACTION_ID tag;
 	float space_pressed;
+};
+
+enum MENU_OPTIONS : uint8 {
+	RETURN,
+	RESTART_GAME,
+	EXIT,
 };
 
 class World {
@@ -94,10 +101,9 @@ public:
 	std::vector<EntityMesh*> collidable_entities;
 
 	EntityMesh* finish;
-	levelInfo level_info;
 
-	//int actualLevel;
-	//bool levelDone;
+	levelInfo level_info;
+	MENU_OPTIONS menuOption;
 
 	EntityMesh* selectedEntity;
 

@@ -15,6 +15,7 @@ enum STAGE_ID : uint8 {
 	PLAY,
 	TRANSITION,
 	EDITOR,
+	MENU,
 	END
 };
 
@@ -44,7 +45,6 @@ public:
 	//playStage();
 	virtual void render() ;
 	virtual void update(float dt);
-	//void loadMesh();
 };
 
 class transitionStage : public Stage {
@@ -52,10 +52,16 @@ public:
 	//playStage();
 	virtual void render();
 	virtual void update(float dt);
-	//void loadMesh();
 };
 
 class editorStage : public Stage {
+public:
+	//editorStage();
+	virtual void render();
+	virtual void update(float dt);
+};
+
+class menuStage : public Stage {
 public:
 	//editorStage();
 	virtual void render();

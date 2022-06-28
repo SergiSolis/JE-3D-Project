@@ -10,10 +10,32 @@
 
 void titleStage::render()
 {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	// set the clear color (the background color)
+	glClearColor(0.0, 1.0, 1.0, 1.0);
+	// set flags
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	// Clear the window and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set the camera as default
+	game->camera->enable();
+
+	//renderWorld();
+	//swap between front buffer and back buffer
+	SDL_GL_SwapWindow(game->window);
 }
 
 void titleStage::update(float seconds_elapsed)
 {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
 	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE))
 	{
 
@@ -21,6 +43,11 @@ void titleStage::update(float seconds_elapsed)
 	if (Input::wasKeyPressed(SDL_SCANCODE_K))
 	{
 
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		world.level_info.tag = ACTION_ID::PAUSE;
+		world.currentStage = STAGE_ID::MENU;
 	}
 }
 
@@ -31,6 +58,9 @@ void tutorialStage::render()
 
 void tutorialStage::update(float seconds_elapsed)
 {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
 	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE))
 	{
 
@@ -38,6 +68,15 @@ void tutorialStage::update(float seconds_elapsed)
 	if (Input::wasKeyPressed(SDL_SCANCODE_K))
 	{
 
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE))
+	{
+
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		world.level_info.tag = ACTION_ID::PAUSE;
+		world.currentStage = STAGE_ID::MENU;
 	}
 }
 
@@ -231,6 +270,11 @@ void playStage::update(float seconds_elapsed)
 		player->currentItem = ITEM_ID::SWORD;
 		world.currentStage = STAGE_ID::TRANSITION;
 	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		world.level_info.tag = ACTION_ID::PAUSE;
+		world.currentStage = STAGE_ID::MENU;
+	}
 	//jump
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) && player->isGrounded == true && world.level_info.space_pressed <= 0.0f) {
 		player->time = 0.0f;
@@ -360,6 +404,12 @@ void transitionStage::update(float seconds_elapsed)
 	{
 		world.loadLevel();
 	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		world.loadLevel();
+		world.level_info.tag = ACTION_ID::PAUSE;
+		world.currentStage = STAGE_ID::MENU;
+	}
 }
 
 void editorStage::render()
@@ -390,6 +440,103 @@ void editorStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_D)) game->camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
 	if (Input::isKeyPressed(SDL_SCANCODE_UP)) game->camera->move(Vector3(0.0f, 1.0f, 0.0f) * speed);
 	if (Input::isKeyPressed(SDL_SCANCODE_DOWN)) game->camera->move(Vector3(0.0f, -1.0f, 0.0f) * speed);
+
+	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		world.level_info.tag = ACTION_ID::PAUSE;
+		world.currentStage = STAGE_ID::MENU;
+	}
+}
+
+void menuStage::render()
+{
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	// set the clear color (the background color)
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	// set flags
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	// Clear the window and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set the camera as default
+	game->camera->enable();
+
+	drawText(100, 60, "MENU", Vector3(0, 1, 1), 8);
+
+	if (world.menuOption == MENU_OPTIONS::RETURN)
+	{
+		if (int(game->time) % 2 == 0) {
+			drawText(100, 200, "RETURN", Vector3(1, 1, 1), 6);
+		}
+	}
+	else
+	{
+		drawText(100, 200, "RETURN", Vector3(1, 1, 1), 6);
+	}
+	if (world.menuOption == MENU_OPTIONS::RESTART_GAME)
+	{
+		if (int(game->time) % 2 == 0) {
+			drawText(100, 260, "RESTART GAME", Vector3(1, 1, 1), 6);
+		}
+	}
+	else
+	{
+		drawText(100, 260, "RESTART GAME", Vector3(1, 1, 1), 6);
+	}
+	if (world.menuOption == MENU_OPTIONS::EXIT)
+	{
+		if (int(game->time) % 2 == 0) {
+			drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
+		}
+	}
+	else
+	{
+		drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
+	}
+	//swap between front buffer and back buffer
+	SDL_GL_SwapWindow(game->window);
+}
+
+void menuStage::update(float seconds_elapsed)
+{
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+	std::cout << "MENU OPTION:" << (int)world.menuOption << std::endl;
+	if (Input::wasKeyPressed(SDL_SCANCODE_UP)) {
+		world.menuOption = static_cast<MENU_OPTIONS>((world.menuOption - 1) % (MENU_OPTIONS::EXIT + 1));
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_DOWN)) {
+		world.menuOption = static_cast<MENU_OPTIONS>((world.menuOption + 1) % (MENU_OPTIONS::EXIT + 1));
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.menuOption == MENU_OPTIONS::RETURN)
+	{
+		world.menuOption = MENU_OPTIONS::RETURN;
+		if (world.level_info.level == 0)
+		{
+			world.level_info.tag = ACTION_ID::NO_ACTION;
+			world.currentStage = STAGE_ID::TITLE;
+		}else{
+			world.level_info.tag = ACTION_ID::NO_ACTION;
+			world.currentStage = STAGE_ID::PLAY;
+		}
+	}
+	else if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.menuOption == MENU_OPTIONS::RESTART_GAME) 
+	{
+		world.menuOption = MENU_OPTIONS::RETURN;
+		world.level_info.tag = ACTION_ID::NO_ACTION;
+		world.currentStage = STAGE_ID::TITLE;
+	}
+	else if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.menuOption == MENU_OPTIONS::EXIT) 
+	{
+		world.menuOption = MENU_OPTIONS::RETURN;
+		game->must_exit = true;
+	}
 }
 
 void endStage::render()
@@ -424,6 +571,11 @@ void endStage::update(float seconds_elapsed)
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
 		world.currentStage = STAGE_ID::PLAY;
 		world.loadLevel();
+	}
+	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
+	{
+		world.level_info.tag = ACTION_ID::PAUSE;
+		world.currentStage = STAGE_ID::MENU;
 	}
 }
 
@@ -479,7 +631,6 @@ void renderWorld() {
 	world.finish->render();
 
 
-
 	for (size_t i = 0; i < world.numBullets; i++)
 	{
 		sBullet& currentBullet = world.bullets[i];
@@ -487,10 +638,6 @@ void renderWorld() {
 			continue;
 		}
 		
-		//first check if we have build the collision model
-		//Vector3 currentPos = currentBullet.last_position;
-		//currentBullet.model.translate(currentPos.x, currentPos.y, currentPos.z);
-		//currentBullet.mesh->render();
 		Matrix44 model = currentBullet.model;
 		model.scale(2.0f, 2.0f, 2.0f);
 		model.rotate(s_enemies[currentBullet.author]->jaw * DEG2RAD, Vector3(0, 1, 0));
@@ -626,7 +773,6 @@ void setCamera(Camera *cam, Matrix44 model)
 			EntityMesh* entity = world.static_entities[i];
 			Vector3 pos;
 			Vector3 normal;
-			//if ((entity->collision))
 			if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (world.sPressed))
 			{
 				eye = model * Vector3(0.0f, 6.0f, -4.0f);
@@ -698,6 +844,23 @@ Vector3 checkCollision(Vector3 target)
 			return returned;
 		}			
 	}
+	for (size_t i = 0; i < world.enemies.size(); i++)
+	{
+		Vector3 posEnt = world.enemies[i]->model.getTranslation();
+
+		if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 0.25, coll, collnorm))
+		{
+			std::cout << "COLLISION fromt" << std::endl;
+
+			world.collidable_entities[i]->collision = true;
+
+			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+
+			returned = player->pos - pushAway;
+			returned.y = player->pos.y;
+			return returned;
+		}
+	}
 	return target;
 }
 
@@ -757,22 +920,13 @@ void bulletCollision(float seconds_elapsed) {
 		CollisionModel3D* collision_model = (CollisionModel3D*)player->mesh->mesh->collision_model;
 		Vector3 currentPos = currentBullet.model.getTranslation();
 		Vector3 next = currentPos + (currentBullet.velocity * seconds_elapsed);
-		//Vector3 ray_origin = currentBullet->last_position;
-		//Vector3 ray_direction = currentBullet->model.getTranslation() - currentBullet->last_position;
-		//float max_ray_dist = ray_direction.length();
-		//float max_ray_dist = next.length();
-
-		//now check where the ray collides with mesh
-		//bool test = collision_model->rayCollision(currentPos.v, next.v, false, 0.0, max_ray_dist); //max ray distance
-
 
 		currentBullet.last_position = currentPos;
 		currentBullet.model.setTranslation(next.x, next.y, next.z);
 		currentBullet.ttl -= seconds_elapsed;
 		
 		//std::cout << "TTL: " << currentBullet.ttl << std::endl;
-		//if ray didnt collide
-		
+
 		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 1.0f, coll, collnorm);
 		if (test == true){
 			currentBullet.ttl = -1.0f;

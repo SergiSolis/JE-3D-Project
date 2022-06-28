@@ -77,7 +77,7 @@ void Game::onKeyDown( SDL_KeyboardEvent event )
 
 	switch(event.keysym.sym)
 	{
-		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
+		//case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_F1: Shader::ReloadAll(); break; 
 			//#ifdef EDITOR
 		case SDLK_2: addEntityInFront(camera,"data/box.obj" , "data/PolygonWestern_Texture_01_A.png"); break;

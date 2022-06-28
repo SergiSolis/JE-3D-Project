@@ -23,13 +23,16 @@ void World::loadWorld() {
 	}
 	
 
-	currentStage = STAGE_ID::PLAY;
-	stages.reserve(6);
+	currentStage = STAGE_ID::MENU;
+	menuOption = MENU_OPTIONS::RETURN;
+
+	stages.reserve(7);
 	stages.push_back(new titleStage());
 	stages.push_back(new tutorialStage());
 	stages.push_back(new playStage());
 	stages.push_back(new transitionStage());
 	stages.push_back(new editorStage());
+	stages.push_back(new menuStage());
 	stages.push_back(new endStage());
 
 	skyModel = Matrix44();
@@ -56,7 +59,7 @@ void World::loadWorld() {
 	viewDatas[4].mesh = Mesh::Get("data/enemy_archer.mesh");
 	viewDatas[4].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
 
-	viewDatas[5].mesh = Mesh::Get("data/chest.obj");
+	viewDatas[5].mesh = Mesh::Get("data/box.obj");
 	viewDatas[5].texture = Texture::Get("data/color-atlas.png");
 
 	level_info.level = 1;
@@ -66,7 +69,7 @@ void World::loadWorld() {
 	importMap(static_entities);
 	unifyCollidableEntities();
 
-	level_info.tag = ACTION_ID::ANY_ACTION;
+	level_info.tag = ACTION_ID::NO_ACTION;
 	level_info.space_pressed = 0.0f;
 
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
@@ -151,6 +154,14 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					chests.push_back(entity);
 
 				}
+				/*
+				else if (index == 9) {
+					prop = viewDatas[5];
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entity->id = ENTITY_ID::ENTITY_MESH;
+
+				}
+				*/
 			}
 		}
 	}
@@ -272,7 +283,7 @@ void World::loadLevel() {
 		importMap(static_entities);
 		unifyCollidableEntities();
 		timeTrial = TIME_TRIAL_LVL_1;
-		level_info.tag == ACTION_ID::ANY_ACTION;
+		level_info.tag == ACTION_ID::NO_ACTION;
 	}
 	else {
 		player->pos = spawnPos;
