@@ -492,7 +492,7 @@ void renderEnemyGUI(EntityEnemy* enemy) {
 	game->camera->updateProjectionMatrix();
 	Vector3 playerScreen = game->camera->project(enemyPos, game->window_width, game->window_height);
 
-	Texture* heartTex = Texture::Get("data/heart.png");
+	Texture* heartTex = Texture::Get("data/heart_enemy.png");
 
 	for (size_t i = 0; i < enemy->hearts; i++)
 	{
@@ -500,7 +500,7 @@ void renderEnemyGUI(EntityEnemy* enemy) {
 		if (dist < 6.0f || enemy->markedTarget)
 		{
 			if (playerScreen.z < 1.0f)
-				renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 50.0f, 50.0f, heartTex, true);
+				renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
 		}
 
 	}
@@ -684,14 +684,26 @@ void bulletCollision(float seconds_elapsed) {
 		currentBullet.last_position = currentPos;
 		currentBullet.model.setTranslation(next.x, next.y, next.z);
 		currentBullet.ttl -= seconds_elapsed;
-		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 1.0f, coll, collnorm);
+		
 		//std::cout << "TTL: " << currentBullet.ttl << std::endl;
 		//if ray didnt collide
-		if (test == false)
-			continue;
-
-		currentBullet.ttl = -1.0f;
-		player->hearts -= 3;
+		
+		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 1.0f, coll, collnorm);
+		if (test == true){
+			currentBullet.ttl = -1.0f;
+			player->hearts -= 2;
+		}
+		else {
+			for (size_t i = 0; i < world.collidable_entities.size(); i++)
+			{
+				bool test_other_entities = world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, next, 0.25, coll, collnorm);
+				if (test_other_entities == true) {
+					currentBullet.ttl = -1.0f;
+					break;
+				}
+			}
+		}
+		
 	}
 }
 
@@ -865,7 +877,7 @@ void playerGUI() {
 
 	for (size_t i = 0; i < player->hearts; i++)
 	{
-		renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
+		renderGUI(30 + 50 * i, 100, 50.0f, 50.0f, heartTex, true);
 	}
 
 
@@ -931,8 +943,8 @@ void handleEnemies(float seconds_elapsed) {
 				{
 					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
 					enemy->time = 0.0f;
-					enemy->animDuration = player->animations[player->currentAnim]->duration / 1.25;
-					enemy->animTimer = player->animations[player->currentAnim]->duration / 1.25;
+					enemy->animDuration = player->animations[player->currentAnim]->duration / 0.005f;
+					enemy->animTimer = player->animations[player->currentAnim]->duration / 0.005f;
 				}
 				enemy->markedTarget = true;
 				if (enemy->shootTimer <= 0.0f && enemy->type == ENEMY_ID::ARCHER)

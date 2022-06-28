@@ -50,11 +50,14 @@ void World::loadWorld() {
 	viewDatas[2].mesh = Mesh::Get("data/exit.obj");
 	viewDatas[2].texture = Texture::Get("data/color-atlas.png");
 
-	viewDatas[3].mesh = Mesh::Get("data/enemy.mesh");
+	viewDatas[3].mesh = Mesh::Get("data/enemy_warrior.mesh");
 	viewDatas[3].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
 
-	viewDatas[4].mesh = Mesh::Get("data/chest.obj");
-	viewDatas[4].texture = Texture::Get("data/color-atlas.png");
+	viewDatas[4].mesh = Mesh::Get("data/enemy_archer.mesh");
+	viewDatas[4].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+
+	viewDatas[5].mesh = Mesh::Get("data/chest.obj");
+	viewDatas[5].texture = Texture::Get("data/color-atlas.png");
 
 	actualLevel = 1;
 
@@ -132,7 +135,7 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				}
 				//arquero
 				else if (index == 7) {
-					prop = viewDatas[3];
+					prop = viewDatas[4];
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
 					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::ARCHER);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
@@ -175,7 +178,7 @@ void World::reloadLevel() {
 				enemies.push_back(enenmy);
 			}
 			if (index == 7) {
-				prop = viewDatas[3];
+				prop = viewDatas[4];
 				//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
 				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::ARCHER);
 				enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
