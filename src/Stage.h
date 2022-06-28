@@ -76,6 +76,7 @@ public:
 };
 
 void renderWorld();
+void RenderMinimap(int widthStart, EntityPlayer* player);
 void renderEnemyWeapon(EntityEnemy* enemy);
 void renderEnemyGUI(EntityEnemy* enemy);
 void setCamera(Camera* cam, Matrix44 model);
@@ -99,5 +100,7 @@ float sign(float value);
 
 int getFreeBullet();
 bool spawnBullet(sBullet& newBulletData, int enemyIndex);
+
+void PlayGameSound(const char* fileName);
 
 #endif 

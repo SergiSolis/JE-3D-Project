@@ -69,6 +69,9 @@ struct levelInfo {
 	int level;
 	ACTION_ID tag;
 	float space_pressed;
+	CHEST_ID last_chest;
+	int last_player_hearts;
+	int last_player_strength;
 };
 
 enum TITLE_OPTIONS : uint8 {
@@ -153,18 +156,23 @@ public:
 	sBullet bullets[100];
 	bool bulletOnce = false;
 	
+	HCHANNEL backgroundSound;
 
 	void loadWorld();
 	void setConfiguration();
 	void saveGame();
 	void importMap(std::vector<EntityMesh*>& entities);
-	void reloadLevel();
 	void unifyCollidableEntities();
 	void addEntity();
 	void deleteEntity();
 	void loadLevel();
+	void PlaySoundWorld(const char* fileName);
+	void StopSoundWorld();
 };
 
 GameMap* loadGameMap(const char* filename);
+HSAMPLE loadSample(const char* fileName);
+
+
 
 #endif

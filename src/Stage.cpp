@@ -6,6 +6,7 @@
 #include "animation.h"
 #include "input.h"
 #include "extra/coldet/coldet.h"
+#include <bass.h>
 
 
 void titleStage::render()
@@ -170,7 +171,6 @@ void tutorialStage::update(float seconds_elapsed)
 	EntityPlayer* player = world.player;
 
 	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
-	std::cout << "Enemies:" << s_enemies.size() << std::endl;
 
 	bulletCollision(seconds_elapsed);
 
@@ -354,9 +354,10 @@ void playStage::render()
 
 	renderWorld();
 
+	
 	if (world.currentStage == STAGE_ID::PLAY)
 		setCamera(game->camera, player->model);
-
+	
 	player->render();
 	
 	playerInventory();
@@ -383,7 +384,7 @@ void playStage::update(float seconds_elapsed)
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
-	std::cout << "Enemies:" << s_enemies.size() << std::endl;
+	//std::cout << "Enemies:" << s_enemies.size() << std::endl;
 
 	bulletCollision(seconds_elapsed);
 
@@ -440,7 +441,7 @@ void playStage::update(float seconds_elapsed)
 	player->hitTimer = max(0.0f, player->hitTimer - seconds_elapsed);
 	
 	world.timeTrial -= seconds_elapsed;
-	if (world.timeTrial <= 0.0f || player->hearts <= 0) {
+	if (world.timeTrial <= 0.0f || (player->hearts <= 0 && player->animTimer <= 0.0f)) {
 		world.level_info.tag = ACTION_ID::DEAD;
 		world.currentStage = STAGE_ID::TRANSITION;
 	}
@@ -579,23 +580,64 @@ void transitionStage::render()
 
 
 	if (world.level_info.tag == ACTION_ID::OPEN_CHEST) {
-		drawText(100, 80, "YOU HAVE OBTAINED", Vector3(1, 1, 1), 6);
-		drawText(260, 160, "A SWORD", Vector3(1, 1, 1), 6);
+		if (world.level_info.last_chest == CHEST_ID::CHEST_SWORD)
+		{
+			drawText(100, 80, "YOU HAVE OBTAINED", Vector3(1, 1, 1), 6);
+			drawText(260, 160, "A SWORD", Vector3(1, 1, 1), 6);
 
-		//RENDER ALL GUI
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			//RENDER ALL GUI
+			glDisable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		Texture* swordTex = Texture::Get("data/sword.png");
-		renderGUI(400, 350, 200.0f, 200.0f, swordTex, true);
+			Texture* swordTex = Texture::Get("data/sword.png");
+			renderGUI(400, 350, 200.0f, 200.0f, swordTex, true);
 
 
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+		}
+		else if (world.level_info.last_chest == CHEST_ID::CHEST_HEART)
+		{
+			drawText(100, 80, "YOU HAVE OBTAINED", Vector3(1, 1, 1), 6);
+			drawText(260, 160, "A HEART", Vector3(1, 1, 1), 6);
 
+			//RENDER ALL GUI
+			glDisable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			Texture* swordTex = Texture::Get("data/heart.png");
+			renderGUI(400, 350, 200.0f, 200.0f, swordTex, true);
+
+
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+		}
+		else
+		{
+			drawText(100, 80, "YOU HAVE INCREASE", Vector3(1, 1, 1), 6);
+			drawText(260, 160, "YOUR STRENGTH", Vector3(1, 1, 1), 6);
+
+			//RENDER ALL GUI
+			glDisable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			Texture* swordTex = Texture::Get("data/color-atlas.png");
+			renderGUI(400, 350, 200.0f, 200.0f, swordTex, true);
+
+
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+		}
+		
 		if (int(game->time) % 2 == 0) {
 			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
 		}
@@ -603,6 +645,10 @@ void transitionStage::render()
 
 	}
 	if (world.level_info.tag == ACTION_ID::WIN) {
+
+		world.level_info.last_player_hearts = player->hearts;
+		world.level_info.last_player_strength = player->strength;
+
 		drawText(80, 80, "YOU WIN THE LEVEL", Vector3(1, 1, 1), 6);
 		if (int(game->time) % 2 == 0) {
 			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
@@ -844,6 +890,8 @@ bool spawnBullet(sBullet& newBulletData, int enemyIndex) {
 		return false;
 	}
 
+	PlayGameSound("data/arrow.wav");
+
 	sBullet& bullet =world.bullets[index];
 	
 	bullet.mesh = newBulletData.mesh;
@@ -870,7 +918,6 @@ void renderWorld() {
 
 	world.ground->render();
 	world.finish->render();
-
 
 	for (size_t i = 0; i < world.numBullets; i++)
 	{
@@ -906,6 +953,82 @@ void renderWorld() {
 		renderEnemyWeapon(enemy);
 		renderEnemyGUI(enemy);
 	}
+
+	
+}
+
+void RenderMinimap(int widthStart, EntityPlayer* player)
+{
+	Shader* shader = Shader::Get("data/shaders/basic.vs", "data/shaders/flat.fs");
+	Game* game = Game::instance;
+	World& world = game->world;
+	std::vector<EntityEnemy*>& enemies = Game::instance->world.enemies;
+	std::vector<EntityMesh*>& entities = Game::instance->world.static_entities;
+	std::vector<EntityChest*>& chests = Game::instance->world.chests;
+	int window_width = Game::instance->window_width;
+	int window_height = Game::instance->window_height;
+
+	//player 
+	glViewport(window_width - 200, window_height - 200, 200, 200);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	Camera cam;
+	cam.setPerspective(60, 1, 0.1f, 1000.f);
+
+	Matrix44 playerModel = player->model;
+	//Vector3 eye = playerModel * Vector3(0.0f, 3.0f, 4.0f);
+	Vector3 eye = playerModel * Vector3(0.0f, 100.0f, 0.0f);
+	Vector3 center = player->pos;
+	
+	Vector3 up = playerModel.rotateVector(Vector3(0.0f, 0.0f, -1.0f));
+	cam.lookAt(eye, center, up);
+
+	//minimap
+	world.ground->render();
+
+	//Use flat.fs since no texture is provided
+	/*
+	//objects of the map
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		//optional
+		Matrix44 entityModel = entities[i]->model;
+		EntityMesh* entityPoint = new EntityMesh(GL_TRIANGLES, entityModel, Mesh::Get("data/sphere.obj"), NULL, shader, Vector4(0.568f, 0.568f, 0.568f, 1));
+		entityPoint->model.scale(1.5f, 1.5f, 1.5f);
+		entityPoint->render();
+
+	}
+	for (size_t i = 0; i < chests.size(); i++)
+	{
+		//optional
+		Matrix44 entityModel = entities[i]->model;
+		EntityMesh* entityPoint = new EntityMesh(GL_TRIANGLES, entityModel, Mesh::Get("data/sphere.obj"), NULL, shader, Vector4(0.501f, 0.309f, 0.058f, 1));
+		entityPoint->model.scale(1.5f, 1.5f, 1.5f);
+		entityPoint->render();
+
+	}
+
+
+
+	//enemies as a red point
+	for (size_t i = 0; i < enemies.size(); i++)
+	{
+		Matrix44 enemyModel = enemies[i]->model;
+		EntityMesh* enemyPoint = new EntityMesh(GL_TRIANGLES, enemyModel , Mesh::Get("data/sphere.obj"), NULL , shader, Vector4(1, 0, 0, 1));
+		
+		enemyPoint->model.scale(1.5f, 1.5f, 1.5f);
+		enemyPoint->render();
+
+	}
+	//we as a green point
+
+	EntityMesh* playerPoint = new EntityMesh(GL_TRIANGLES, playerModel, Mesh::Get("data/sphere.obj"), NULL, shader, Vector4(0, 1, 0, 1));
+	playerPoint->model.scale(1.5f, 1.5f, 1.5f);
+	playerPoint->render();
+	*/
+	//restore viewport
+	glViewport(0, 0, window_width, window_height);
+
 }
 
 void renderEnemyWeapon(EntityEnemy* enemy) {
@@ -918,7 +1041,7 @@ void renderEnemyWeapon(EntityEnemy* enemy) {
 		handLocalMatrix.translateGlobal(-20, -1, -17.5);
 		Matrix44& actualModel = enemy->weapon->model;
 		actualModel = handLocalMatrix * enemy->visualModel;
-		actualModel.scale(1.25f, 1.25f, 1.25f);
+		actualModel.scale(1.5f, 1.5f, 1.5f);
 		enemy->weaponModel = actualModel;
 		enemy->weaponModel.rotate(-80 * DEG2RAD, Vector3(1, 0, 0));
 		enemy->weaponModel.rotate(-100 * DEG2RAD, Vector3(0, 1, 0));
@@ -967,16 +1090,20 @@ void renderEnemyGUI(EntityEnemy* enemy) {
 
 	Texture* heartTex = Texture::Get("data/heart_enemy.png");
 
-	for (size_t i = 0; i < enemy->hearts; i++)
+	if (enemy->hearts >= 0)
 	{
-		//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
-		if (dist < 6.0f || enemy->markedTarget)
+		for (size_t i = 0; i < enemy->hearts; i++)
 		{
-			if (playerScreen.z < 1.0f)
-				renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
-		}
+			//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
+			if (dist < 6.0f || enemy->markedTarget)
+			{
+				if (playerScreen.z < 1.0f)
+					renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
+			}
 
+		}
 	}
+	
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -1042,12 +1169,22 @@ Vector3 checkCollision(Vector3 target)
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
 		if (world.enemies[i]->weapon->mesh->testSphereCollision(world.enemies[i]->weaponModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f
-			&& (world.enemies[i]->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && world.enemies[i]->animTimer >= 0.55f)) {
+			&& (world.enemies[i]->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && world.enemies[i]->animTimer >= 0.7f)) {
+			//PlayGameSound("data/hit.wav");
 			player->hitTimer = player->animations[player->currentAnim]->duration;
-			player->hearts -= 1;
-			player->currentAnim = PLAYER_ANIM_ID::PLAYER_HIT;
-			player->animDuration = player->animations[player->currentAnim]->duration;
-			player->animTimer = player->animations[player->currentAnim]->duration;
+			player->hearts -= world.enemies[i]->strength;
+			if (player->hearts <= 0)
+			{
+				player->currentAnim = PLAYER_ANIM_ID::PLAYER_DEAD;
+				player->animDuration = player->animations[player->currentAnim]->duration / 2.65f;
+				player->animTimer = player->animations[player->currentAnim]->duration / 2.65f;
+			}
+			else {
+				player->currentAnim = PLAYER_ANIM_ID::PLAYER_HIT;
+				player->animDuration = player->animations[player->currentAnim]->duration;
+				player->animTimer = player->animations[player->currentAnim]->duration;
+			}
+
 		}
 	}
 
@@ -1171,7 +1308,7 @@ void bulletCollision(float seconds_elapsed) {
 		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 1.0f, coll, collnorm);
 		if (test == true){
 			currentBullet.ttl = -1.0f;
-			player->hearts -= 2;
+			player->hearts -= world.enemies[i]->strength;
 		}
 		else {
 			for (size_t i = 0; i < world.collidable_entities.size(); i++)
@@ -1259,14 +1396,25 @@ void takeEntity(Camera* cam) {
 		if (playerPos.distance(entityPos) <= 3.0f)
 		{
 			std::cout << "Object selected: " << std::endl;
-			player->inventory.push_back(content);
-			player->currentItem = ITEM_ID::SWORD;
+			world.level_info.last_chest = world.chests[i]->type;
+			if (world.chests[i]->type == CHEST_ID::CHEST_SWORD)
+			{
+				player->inventory.push_back(content);
+				player->currentItem = ITEM_ID::SWORD;
+			}
+			else if (world.chests[i]->type == CHEST_ID::CHEST_HEART) {
+				player->hearts += 1;
+			}
+			else {
+				player->strength += 1;
+			}
 			chests_address.erase(world.chests.begin() + i);
 			for (size_t i = 0; i < world.collidable_entities.size(); i++)
 			{
 				if (world.collidable_entities[i]->id == ENTITY_ID::ENTITY_CHEST)
 				{
 					world.collidable_entities.erase(world.collidable_entities.begin() + i);
+					
 					world.level_info.tag = ACTION_ID::OPEN_CHEST;
 					world.currentStage = STAGE_ID::TRANSITION;
 				}
@@ -1358,11 +1506,13 @@ void playerGUI() {
 
 	Texture* heartTex = Texture::Get("data/heart.png");
 
-	for (size_t i = 0; i < player->hearts; i++)
+	if (player->hearts >= 0)
 	{
-		renderGUI(30 + 50 * i, 100, 50.0f, 50.0f, heartTex, true);
+		for (size_t i = 0; i < player->hearts; i++)
+		{
+			renderGUI(30 + 50 * i, 100, 50.0f, 50.0f, heartTex, true);
+		}
 	}
-
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -1396,13 +1546,13 @@ void handleEnemies(float seconds_elapsed) {
 			}
 			if ((dist < 6.0f || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 			{
-				//std::cout << "anim timer: " << enemy->animTimer << std::endl;
+				std::cout << "anim timer: " << enemy->animTimer << std::endl;
 				if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_ATTACK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && enemy->animTimer <= 0.0f))
 				{
 					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
 					enemy->time = 0.0f;
-					enemy->animDuration = player->animations[player->currentAnim]->duration / 1.25;
-					enemy->animTimer = player->animations[player->currentAnim]->duration / 1.25;
+					enemy->animDuration = enemy->animations[enemy->currentAnim]->duration ;
+					enemy->animTimer = enemy->animations[enemy->currentAnim]->duration;
 				}
 				enemy->markedTarget = true;
 				if (dist > 1.0f) {
@@ -1426,8 +1576,8 @@ void handleEnemies(float seconds_elapsed) {
 				{
 					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
 					enemy->time = 0.0f;
-					enemy->animDuration = player->animations[player->currentAnim]->duration / 0.005f;
-					enemy->animTimer = player->animations[player->currentAnim]->duration / 0.005f;
+					enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 0.005f;
+					enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 0.005f;
 				}
 				enemy->markedTarget = true;
 				if (enemy->shootTimer <= 0.0f && enemy->type == ENEMY_ID::ARCHER)
@@ -1468,18 +1618,19 @@ void handleEnemies(float seconds_elapsed) {
 		{
 			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f 
 				&& (player->currentAnim == PLAYER_ANIM_ID::PLAYER_ATTACK && player->animTimer >= 0.55f)) {
+				//PlayGameSound("data/hit.wav");
 				enemy->time = 0.0f;
 				enemy->hitTimer = player->animations[player->currentAnim]->duration / 2;
-				enemy->hearts -= 1;
+				enemy->hearts -= player->strength;
 				enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_HIT;
-				enemy->animDuration = player->animations[player->currentAnim]->duration / 2;
-				enemy->animTimer = player->animations[player->currentAnim]->duration / 2;
+				enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 2;
+				enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 2;
 				if (enemy->hearts <= 0)
 				{
 					enemy->time = 0.0f;
 					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_DEAD;
-					enemy->animDuration = player->animations[player->currentAnim]->duration / 0.75f;
-					enemy->animTimer = player->animations[player->currentAnim]->duration / 0.75f;
+					enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 2;
+					enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 2;
 
 				}
 			}
@@ -1490,4 +1641,14 @@ void handleEnemies(float seconds_elapsed) {
 
 float sign(float value) {
 	return value >= 0.0f ? 1.0f : -1.0f;
+}
+
+void PlayGameSound(const char* fileName) {
+
+	HSAMPLE hSample = loadSample(fileName);
+
+	HCHANNEL hSampleChannel;
+	hSampleChannel = BASS_SampleGetChannel(hSample, false);
+
+	BASS_ChannelPlay(hSampleChannel, true);
 }

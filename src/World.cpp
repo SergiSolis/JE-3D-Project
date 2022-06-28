@@ -1,5 +1,6 @@
 #include "World.h"
 #include "game.h"
+#include <bass.h>
 
 void World::loadWorld() {
 	Game* game = Game::instance;
@@ -45,7 +46,7 @@ void World::loadWorld() {
 	Matrix44 groundModel;
 	Mesh* groundMesh = new Mesh();
 	groundMesh->createPlane(1000);
-	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader, 500.0f);
+	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader, Vector4(1,1,1,1), 500.0f);
 	cameraLocked = true;
 
 	viewDatas[1].mesh = Mesh::Get("data/wall_d.obj");
@@ -73,6 +74,10 @@ void World::loadWorld() {
 	level_info.tag = ACTION_ID::NO_ACTION;
 	level_info.space_pressed = 0.0f;
 
+	if (BASS_Init(-1, 44100, 0, 0, NULL) == false) //-1 significa usar el por defecto del sistema operativo
+	{
+		std::cout << "Error init BASS" << std::endl;
+	}
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 }
 
@@ -132,7 +137,7 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				else if (index == 6) {
 					prop = viewDatas[3];
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::WARRIOR);
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::WARRIOR);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 					enenmy->spawnPos = enenmy->pos;
 					enemies.push_back(enenmy);
@@ -142,7 +147,7 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				else if (index == 7) {
 					prop = viewDatas[4];
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::ARCHER);
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::ARCHER);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 					enenmy->spawnPos = enenmy->pos;
 					enemies.push_back(enenmy);
@@ -151,9 +156,21 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				else if (index == 8) {
 					//prop = viewDatas[4];
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
-					EntityChest* entity = new EntityChest(cellModel, level_info.level);
-					chests.push_back(entity);
+					EntityChest* entity = new EntityChest(cellModel, level_info.level, CHEST_ID::CHEST_SWORD);
 
+					chests.push_back(entity);
+				}
+				else if (index == 9) {
+					//prop = viewDatas[4];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityChest* entity = new EntityChest(cellModel, level_info.level, CHEST_ID::CHEST_HEART);
+					chests.push_back(entity);
+				}
+				else if (index == 10) {
+					//prop = viewDatas[4];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityChest* entity = new EntityChest(cellModel, level_info.level, CHEST_ID::CHEST_STRENGTH);
+					chests.push_back(entity);
 				}
 				/*
 				else if (index == 9) {
@@ -164,48 +181,6 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				}
 				*/
 			}
-		}
-	}
-}
-
-void World::reloadLevel() {
-	enemies.clear();
-	chests.clear();
-	player->currentItem = ITEM_ID::NONE;
-	for (size_t i = 0; i < gamemap->width; i++)
-	{
-		for (size_t j = 0; j < gamemap->height; j++)
-		{
-			Matrix44 cellModel;
-			cellModel.translate(i * tileWidth, 0.0f, j * tileHeight);
-			cellModel.scale(3, 3, 3);
-			sCell& cell = gamemap->getCell(i, j);
-			int index = (int)cell.type;
-			sPropViewData& prop = viewDatas[0];
-			if (index == 6) {
-				prop = viewDatas[3];
-				//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::WARRIOR);
-				enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
-				enenmy->spawnPos = enenmy->pos;
-				enemies.push_back(enenmy);
-			}
-			if (index == 7) {
-				prop = viewDatas[4];
-				//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-				EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, ENEMY_ID::ARCHER);
-				enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
-				enenmy->spawnPos = enenmy->pos;
-				enemies.push_back(enenmy);
-			}
-			else if (index == 8) {
-				//prop = viewDatas[4];
-				cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
-				EntityChest* entity = new EntityChest(cellModel, level_info.level);
-				chests.push_back(entity);
-
-			}
-			else continue;
 		}
 	}
 }
@@ -263,7 +238,6 @@ GameMap* loadGameMap(const char* filename)
 }
 
 void World::loadLevel() {
-	
 	if (level_info.tag == ACTION_ID::WIN) {
 		level_info.level += 1;
 		if (level_info.level == 4) {
@@ -274,11 +248,19 @@ void World::loadLevel() {
 	}
 
 	if (level_info.level == 1) {
+		StopSoundWorld();
+		PlaySoundWorld("data/background1.wav");
 		player->currentItem = ITEM_ID::NONE;
+
 	}
 	else if (level_info.level == 0)
 	{
+		StopSoundWorld();
+		PlaySoundWorld("data/background.wav");
 		player->currentItem = ITEM_ID::SWORD;
+	}
+	else {
+
 	}
 
 	static_entities.clear();
@@ -302,10 +284,45 @@ void World::loadLevel() {
 	
 	level_info.tag == ACTION_ID::NO_ACTION;
 	
-	player->hearts = 3;
+	if (level_info.level == 1) {
+		player->hearts = 3;
+		player->strength = 1;
+	}
+	else {
+		player->hearts = level_info.last_player_hearts;
+		player->strength = level_info.last_player_strength;
+	}
 	player->hitTimer = 0.0f;
 	player->jaw = 0;
 
 	currentStage = STAGE_ID::PLAY;
 }
+
+void World::PlaySoundWorld(const char* fileName) {
+	HSAMPLE hSample = loadSample(fileName);
+
+	backgroundSound = BASS_SampleGetChannel(hSample, false);
+
+	BASS_ChannelPlay(backgroundSound, true);
+}
+
+void World::StopSoundWorld() {
+
+	BASS_ChannelStop(backgroundSound);
+}
+
+HSAMPLE loadSample(const char* fileName) {
+	//El handler para un sample
+	HSAMPLE hSample;
+	//use BASS_SAMPLE_LOOP in the last param to have a looped sound
+	hSample = BASS_SampleLoad(false, fileName, 0, 0, 3, 0);
+	if (hSample == 0)
+	{
+		std::cout << "ERROR load " << fileName << std::endl;
+	}
+	std::cout << "+ AUDIO load " << fileName << std::endl;
+	return hSample;
+}
+
+
 

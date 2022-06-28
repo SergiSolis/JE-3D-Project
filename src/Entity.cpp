@@ -29,7 +29,7 @@ void EntityMesh::render() {
 	shader->enable();
 
 	//upload uniforms
-	shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	shader->setUniform("u_color", color);
 	shader->setUniform("u_viewprojection", Game::instance->camera->viewprojection_matrix);
 	if (texture != NULL)
 	{

@@ -12,14 +12,12 @@
 #include "World.h"
 #include "Stage.h"
 
+
 float angle = 0;
 float mouse_speed = 100.0f;
 FBO* fbo = NULL;
 
 Game* Game::instance = NULL;
-
-
-
 
 Game::Game(int window_width, int window_height, SDL_Window* window)
 {
@@ -46,8 +44,13 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	camera->lookAt(Vector3(0.f,50.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,100000.f); //set the projection, we want to be perspective
 
+	//create our camera
+	camera2 = new Camera();
+	camera2->lookAt(Vector3(0.f, 50.f, 100.f), Vector3(0.f, 0.f, 0.f), Vector3(0.f, 1.f, 0.f)); //position the camera and point to 0,0,0
+	camera2->setPerspective(70.f, window_width / (float)window_height, 0.1f, 100000.f); //set the projection, we want to be perspective
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
+	
 }
 
 //what to do when the image has to be draw

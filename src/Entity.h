@@ -60,13 +60,15 @@ public:
     
     bool coverFlag;
     bool collision;
+    Vector4 color;
 
-    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::ENTITY_MESH) {
+    EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, Vector4 col = Vector4(1, 1, 1, 1), float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::ENTITY_MESH) {
         primitive = prim;
         model = new_model;
         mesh = mes;
         texture = tex;
         shader = shad;
+        color = col;
         tiling = til;
         id = e_id;
         coverFlag = false;
@@ -123,6 +125,8 @@ public:
     float animDuration;
     float time;
 
+    int strength;
+
     Matrix44 visualModel;
     Skeleton resultSk;
 
@@ -168,6 +172,7 @@ public:
         jumpLock = 0.0f;
 
         hearts = 3;
+        strength = 1;
 
         hitTimer = 0.0f;
         time = 0.0f;
@@ -236,7 +241,10 @@ public:
     EntityMesh* weapon;
 
     bool markedTarget;
+
     int hearts;
+    int strength;
+
     float hitTimer;
     float animTimer;
     float animDuration;
@@ -249,7 +257,7 @@ public:
     //const int numBullets = 10;
     //std::vector<sBullet*> bullets;
 
-    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, ENEMY_ID type_id = ENEMY_ID::WARRIOR) {
+    EntityEnemy(Matrix44 model, Mesh* n_mesh, Texture* tex, int level, ENEMY_ID type_id = ENEMY_ID::WARRIOR) {
         type = type_id;
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
@@ -287,6 +295,15 @@ public:
         jaw = 180;
         markedTarget = false;
         hearts = 3;
+
+        if (level == 1)
+        {
+            strength = 1;
+        }
+        else if (level == 2) {
+            strength = 2;
+        }
+
         hitTimer = 0.0f;
         animTimer = 0.0f;
         time = 0.0f;
@@ -298,17 +315,26 @@ public:
     void update(float dt);
 };
 
+enum CHEST_ID : uint8 {
+    CHEST_SWORD,
+    CHEST_HEART,
+    CHEST_STRENGTH
+};
+
 class EntityChest : public Entity
 {
 public:
     EntityMesh* mesh;
     EntityMesh* content;
+    CHEST_ID type;
 
-    EntityChest(Matrix44 model, int actualLevel, ENTITY_ID e_id = ENTITY_ID::ENTITY_CHEST) {
+    EntityChest(Matrix44 model, int actualLevel, CHEST_ID chest_type, ENTITY_ID e_id = ENTITY_ID::ENTITY_CHEST) {
+        type = chest_type;
         id = e_id;
-        mesh = new EntityMesh(GL_TRIANGLES, model, Mesh::Get("data/chest.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs"));
+
+        mesh = new EntityMesh(GL_TRIANGLES, model, Mesh::Get("data/chest.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs"), Vector4(1,1,1,1), 1.0f, ENTITY_CHEST);
         mesh->model = model;
-        mesh->id = e_id;
+
         if (actualLevel == 1)
         {
             content = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"));
