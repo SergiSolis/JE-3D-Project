@@ -82,7 +82,7 @@ void EntityPlayer::render() {
 	{
 		visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
 	}
-	visualModel.scale(0.01f, 0.01f, 0.01f);
+	visualModel.scale(0.015f, 0.015f, 0.015f);
 
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
 	if (!mesh->shader) return;
@@ -144,7 +144,7 @@ void EntityEnemy::render() {
 	visualModel = model;
 
 	visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
-	visualModel.scale(0.01f, 0.01f, 0.01f);
+	visualModel.scale(0.015f, 0.015f, 0.015f);
 
 	mesh->model = model;
 
@@ -153,8 +153,15 @@ void EntityEnemy::render() {
 
 	//enable shader
 	mesh->shader->enable();
-
 	float t = fmod(time / 1.75, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	if (type == ENEMY_ID::ARCHER)
+	{
+		t = fmod(time / attackSpeed, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	}
+	else if (type == ENEMY_ID::WARRIOR)
+	{
+		t = fmod(time / attackSpeed, animations[currentAnim]->duration) / animations[currentAnim]->duration;
+	}
 	animations[currentAnim]->assignTime(t * animations[currentAnim]->duration);
 
 	resultSk = animations[currentAnim]->skeleton;

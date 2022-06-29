@@ -68,7 +68,14 @@ void Game::render(void)
 
 void Game::update(double seconds_elapsed)
 {
-	world.stages[world.currentStage]->update(seconds_elapsed);
+	if (world.currentStage == STAGE_ID::TUTORIAL) {
+		world.stages[STAGE_ID::PLAY]->update(seconds_elapsed);
+	}
+	else
+	{
+		world.stages[world.currentStage]->update(seconds_elapsed);
+	}
+
 }
 
 //Keyboard event handler (sync input)

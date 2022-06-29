@@ -61,6 +61,7 @@ public:
     bool coverFlag;
     bool collision;
     Vector4 color;
+    int chest_id;
 
     EntityMesh(int prim, Matrix44 new_model, Mesh* mes, Texture* tex, Shader* shad, Vector4 col = Vector4(1, 1, 1, 1), float til = 1.0f, ENTITY_ID e_id = ENTITY_ID::ENTITY_MESH) {
         primitive = prim;
@@ -110,6 +111,7 @@ public:
     bool firstPerson;
     bool cameraLocked;
     bool isGrounded;
+    bool isMoving;
 
     bool walkingBackwards;
 
@@ -119,13 +121,15 @@ public:
     float jaw;
     float pitch;
 
-    int hearts;
+    
     float hitTimer;
     float animTimer;
     float animDuration;
     float time;
 
+    int hearts;
     int strength;
+    int runSpeed;
 
     Matrix44 visualModel;
     Skeleton resultSk;
@@ -173,6 +177,7 @@ public:
 
         hearts = 3;
         strength = 1;
+        runSpeed = 15.0f;
 
         hitTimer = 0.0f;
         time = 0.0f;
@@ -180,6 +185,7 @@ public:
         firstPerson = false;
         cameraLocked = true;
         isGrounded = true;
+        isMoving = false;
         walkingBackwards = false;
         animDuration = animations[currentAnim]->duration;
     }
@@ -244,13 +250,18 @@ public:
 
     int hearts;
     int strength;
+    float velocity;
+    float sightDistance;
 
     float hitTimer;
     float animTimer;
     float animDuration;
+    float hitRegion;
     float time;
 
     float shootTimer;
+
+    float attackSpeed;
 
     ENEMY_ID type;
 
@@ -296,12 +307,37 @@ public:
         markedTarget = false;
         hearts = 3;
 
-        if (level == 1)
+        if (level == 1 || level == 0)
         {
             strength = 1;
+            
+            velocity = 3.0f;
+            if (type == ENEMY_ID::WARRIOR)
+            {
+                sightDistance = 5.0f;
+                attackSpeed = 1.75f;
+                hitRegion = 0.7f;
+            }
+            else if (type == ENEMY_ID::ARCHER)
+            {
+                sightDistance = 15.0f;
+                attackSpeed = 5.0f;
+            }
         }
         else if (level == 2) {
             strength = 2;
+            velocity = 6.0f;
+            if (type == ENEMY_ID::WARRIOR)
+            {
+                sightDistance = 10.0f;
+                attackSpeed = 1.25f;
+                hitRegion = 0.55f;
+            }
+            else if(type == ENEMY_ID::ARCHER)
+            {
+                sightDistance = 20.0f;
+                attackSpeed = 2.0f;
+            }
         }
 
         hitTimer = 0.0f;
@@ -327,6 +363,7 @@ public:
     EntityMesh* mesh;
     EntityMesh* content;
     CHEST_ID type;
+    int collidable_id;
 
     EntityChest(Matrix44 model, int actualLevel, CHEST_ID chest_type, ENTITY_ID e_id = ENTITY_ID::ENTITY_CHEST) {
         type = chest_type;
@@ -334,6 +371,8 @@ public:
 
         mesh = new EntityMesh(GL_TRIANGLES, model, Mesh::Get("data/chest.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs"), Vector4(1,1,1,1), 1.0f, ENTITY_CHEST);
         mesh->model = model;
+
+        collidable_id = 0;
 
         if (actualLevel == 1)
         {

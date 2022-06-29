@@ -121,6 +121,7 @@ public:
 	Vector3 spawnPos;
 
 	bool cameraLocked;
+	bool camera_inverse;
 	bool mouseLocked = true;
 
 	std::vector<Stage*> stages;
@@ -149,6 +150,8 @@ public:
 	Matrix44 boxModel;
 
 	float timeTrial = TIME_TRIAL_LVL_1;
+
+	
 
 	bool sPressed = false;
 	const int numBullets = 100;

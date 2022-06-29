@@ -64,12 +64,12 @@ void World::loadWorld() {
 	viewDatas[5].mesh = Mesh::Get("data/box.obj");
 	viewDatas[5].texture = Texture::Get("data/color-atlas.png");
 
-	level_info.level = 1;
+	level_info.level = 0;
 
 	gamemap = new GameMap();
-	gamemap = loadGameMap("data/lvl1.map");
-	importMap(static_entities);
-	unifyCollidableEntities();
+	//gamemap = loadGameMap("data/lvl1.map");
+	//importMap(static_entities);
+	//unifyCollidableEntities();
 
 	level_info.tag = ACTION_ID::NO_ACTION;
 	level_info.space_pressed = 0.0f;
@@ -79,6 +79,7 @@ void World::loadWorld() {
 		std::cout << "Error init BASS" << std::endl;
 	}
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
+	//camera_inverse = false;
 }
 
 Vector3 CellToWorld(Vector2 cellPos, int cellsize) { //esquina superior izquierda
@@ -200,8 +201,12 @@ void  World::unifyCollidableEntities() {
 	for (size_t i = 0; i < chests.size(); i++)
 	{
 		EntityMesh* entity = chests[i]->mesh;
+		entity->id = ENTITY_ID::ENTITY_CHEST;
 		//collidable_entities.push_back(std::make_shared<Entity*>(entity));
+		entity->chest_id = i;
 		collidable_entities.push_back(entity);
+
+		chests[i]->collidable_id = i;
 	}
 	for (size_t i = 0; i < enemies.size(); i++)
 	{
@@ -284,16 +289,23 @@ void World::loadLevel() {
 	
 	level_info.tag == ACTION_ID::NO_ACTION;
 	
-	if (level_info.level == 1) {
+	if (level_info.level == 1 || level_info.level == 0) {
 		player->hearts = 3;
 		player->strength = 1;
 	}
 	else {
-		player->hearts = level_info.last_player_hearts;
+		if (level_info.last_player_hearts < 3){
+			player->hearts = 3;
+		}
+		else {
+			player->hearts = level_info.last_player_hearts;
+		}
 		player->strength = level_info.last_player_strength;
 	}
 	player->hitTimer = 0.0f;
 	player->jaw = 0;
+
+	//camera_inverse = false;
 
 	currentStage = STAGE_ID::PLAY;
 }
