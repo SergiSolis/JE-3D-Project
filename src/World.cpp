@@ -42,6 +42,7 @@ void World::loadWorld() {
 	skyTex = Texture::Get("data/night.tga");
 	sky = new EntityMesh(GL_TRIANGLES, skyModel, skyMesh, skyTex, shader);
 
+	exit_open = Mesh::Get("data/exit_open.obj");
 
 	Matrix44 groundModel;
 	Mesh* groundMesh = new Mesh();
@@ -49,7 +50,7 @@ void World::loadWorld() {
 	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader, Vector4(1,1,1,1), 500.0f);
 	cameraLocked = true;
 
-	viewDatas[1].mesh = Mesh::Get("data/wall_d.obj");
+	viewDatas[1].mesh = Mesh::Get("data/wall.obj");
 	viewDatas[1].texture = Texture::Get("data/color-atlas.png");
 
 	viewDatas[2].mesh = Mesh::Get("data/exit.obj");
@@ -61,7 +62,7 @@ void World::loadWorld() {
 	viewDatas[4].mesh = Mesh::Get("data/enemy_archer.mesh");
 	viewDatas[4].texture = Texture::Get("data/PolygonMinis_Texture_01_A.png");
 
-	viewDatas[5].mesh = Mesh::Get("data/box.obj");
+	viewDatas[5].mesh = Mesh::Get("data/graveyard.obj");
 	viewDatas[5].texture = Texture::Get("data/color-atlas.png");
 
 	level_info.level = 0;
@@ -173,14 +174,23 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					EntityChest* entity = new EntityChest(cellModel, level_info.level, CHEST_ID::CHEST_STRENGTH);
 					chests.push_back(entity);
 				}
-				/*
-				else if (index == 9) {
+				else if (index == 11) {
+					//prop = viewDatas[4];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityChest* entity = new EntityChest(cellModel, level_info.level, CHEST_ID::CHEST_VELOCITY);
+					chests.push_back(entity);
+				}
+				else if (index == 12) {
 					prop = viewDatas[5];
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
-					entity->id = ENTITY_ID::ENTITY_MESH;
-
+					entities.push_back(entity);
 				}
-				*/
+				else if (index == 13) {
+					prop = viewDatas[5];
+					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
+					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
+					entities.push_back(entity);
+				}
 			}
 		}
 	}
@@ -289,8 +299,12 @@ void World::loadLevel() {
 	
 	level_info.tag == ACTION_ID::NO_ACTION;
 	
-	if (level_info.level == 1 || level_info.level == 0) {
+	if (level_info.level == 1 ) {
 		player->hearts = 3;
+		player->strength = 1;
+	}
+	else if (level_info.level == 0) {
+		player->hearts = 8;
 		player->strength = 1;
 	}
 	else {

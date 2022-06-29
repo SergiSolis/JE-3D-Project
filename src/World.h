@@ -149,6 +149,8 @@ public:
 	Texture* box_text;
 	Matrix44 boxModel;
 
+	Mesh* exit_open;
+
 	float timeTrial = TIME_TRIAL_LVL_1;
 
 	

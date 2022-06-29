@@ -84,7 +84,7 @@ void titleStage::update(float seconds_elapsed)
 	if (Input::wasKeyPressed(SDL_SCANCODE_DOWN)) {
 		world.titleOption = static_cast<TITLE_OPTIONS>((world.titleOption + 1) % (TITLE_OPTIONS::PLAY_EXIT + 1));
 	}
-	if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.titleOption == TITLE_OPTIONS::PLAY_GAME)
+	if ((Input::wasKeyPressed(SDL_SCANCODE_RETURN) || Input::wasKeyPressed(SDL_SCANCODE_K)) && world.titleOption == TITLE_OPTIONS::PLAY_GAME)
 	{
 		world.titleOption = TITLE_OPTIONS::PLAY_GAME;
 		world.level_info.level = 1;
@@ -92,7 +92,7 @@ void titleStage::update(float seconds_elapsed)
 		world.loadLevel();
 		world.currentStage = STAGE_ID::PLAY;
 	}
-	else if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.titleOption == TITLE_OPTIONS::PLAY_TUTORIAL)
+	else if ((Input::wasKeyPressed(SDL_SCANCODE_RETURN) || Input::wasKeyPressed(SDL_SCANCODE_K)) && world.titleOption == TITLE_OPTIONS::PLAY_TUTORIAL)
 	{
 		world.titleOption = TITLE_OPTIONS::PLAY_GAME;
 		world.level_info.level = 0;
@@ -100,7 +100,7 @@ void titleStage::update(float seconds_elapsed)
 		world.loadLevel();
 		world.currentStage = STAGE_ID::TUTORIAL;
 	}
-	else if (Input::wasKeyPressed(SDL_SCANCODE_RETURN) && world.titleOption == TITLE_OPTIONS::PLAY_EXIT)
+	else if ((Input::wasKeyPressed(SDL_SCANCODE_RETURN) || Input::wasKeyPressed(SDL_SCANCODE_K)) && world.titleOption == TITLE_OPTIONS::PLAY_EXIT)
 	{
 		game->must_exit = true;
 	}
@@ -189,6 +189,8 @@ void playStage::render()
 	// set the camera as default
 	game->camera->enable();
 
+
+
 	renderWorld();
 
 	
@@ -209,7 +211,13 @@ void playStage::render()
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//drawText(2, 25, "Time trial: "  + std::to_string(world.timeTrial), Vector3(1, 1, 0), 2);
-	drawText(2, 50, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
+	drawText(2, 25, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
+
+	if (player->currentItem == ITEM_ID::NONE)
+	{
+		drawText(170, 90, "YOU MUST FIND A WEAPON TO FIGHT", Vector3(1, 1, 1), 3);
+	}
+
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
 }
@@ -265,10 +273,10 @@ void playStage::update(float seconds_elapsed)
 		}
 	}
 
-	if (s_enemies.size() <= 0)
+	if (s_enemies.size() <= 0 || world.level_info.level == 0)
 	{
 		EntityMesh* entityFinish = Game::instance->world.finish;
-		entityFinish->mesh = Mesh::Get("data/exit_open.obj");
+		entityFinish->mesh = world.exit_open;
 
 	}
 
@@ -390,12 +398,12 @@ void playStage::update(float seconds_elapsed)
 		player->animTimer = player->animations[player->currentAnim]->duration / 1.5;
 		
 		//playerVel = playerVel + (jump * sqrtf(2.0f * gravity * jumpHeight));
-		player->jumpLock = 0.2f;
+		player->jumpLock = 0.25f;
 	}
 
 	if (player->jumpLock != 0.0f)
 	{
-		playerVel[1] += 0.15f;
+		playerVel[1] += 0.25f;
 	}
 	if (player->isGrounded == false)
 	{
@@ -483,7 +491,7 @@ void transitionStage::render()
 			glEnable(GL_CULL_FACE);
 			glDisable(GL_BLEND);
 		}
-		else
+		else if (world.level_info.last_chest == CHEST_ID::CHEST_STRENGTH)
 		{
 			drawText(100, 80, "YOU HAVE INCREASE", Vector3(1, 1, 1), 6);
 			drawText(260, 160, "YOUR STRENGTH", Vector3(1, 1, 1), 6);
@@ -495,6 +503,25 @@ void transitionStage::render()
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			Texture* strengthTex = Texture::Get("data/strength.png");
+			renderGUI(400, 350, 200.0f, 200.0f, strengthTex, true);
+
+
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glDisable(GL_BLEND);
+		}
+		else
+		{
+			drawText(100, 80, "YOU HAVE INCREASE", Vector3(1, 1, 1), 6);
+			drawText(260, 160, "YOUR VELOCITY", Vector3(1, 1, 1), 6);
+
+			//RENDER ALL GUI
+			glDisable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			Texture* strengthTex = Texture::Get("data/velocity.png");
 			renderGUI(400, 350, 200.0f, 200.0f, strengthTex, true);
 
 
@@ -536,6 +563,7 @@ void transitionStage::update(float seconds_elapsed)
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 
+	player->currentAnim = PLAYER_ANIM_ID::PLAYER_IDLE;
 	world.level_info.space_pressed = 2.0f;
 
 	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
@@ -644,6 +672,21 @@ void menuStage::render()
 	{
 		drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
 	}
+
+	//RENDER ALL GUI
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	Texture* controlsTex = Texture::Get("data/controls_empty.png");
+	renderGUI(600, 100, 300.0f, 100.0f, controlsTex, true);
+
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
 }
@@ -818,15 +861,14 @@ void renderWorld() {
 		renderEnemyWeapon(enemy);
 		renderEnemyGUI(enemy);
 	}
-
-	
 }
 
-void RenderMinimap(int widthStart, EntityPlayer* player)
+void RenderMinimap(int widthStart)
 {
 	Shader* shader = Shader::Get("data/shaders/basic.vs", "data/shaders/flat.fs");
 	Game* game = Game::instance;
 	World& world = game->world;
+	EntityPlayer* player = world.player;
 	std::vector<EntityEnemy*>& enemies = Game::instance->world.enemies;
 	std::vector<EntityMesh*>& entities = Game::instance->world.static_entities;
 	std::vector<EntityChest*>& chests = Game::instance->world.chests;
@@ -849,51 +891,35 @@ void RenderMinimap(int widthStart, EntityPlayer* player)
 	cam.lookAt(eye, center, up);
 
 	//minimap
-	world.ground->render();
+	renderMesh(GL_TRIANGLES, world.ground->model, world.ground->mesh, world.ground->texture, world.ground->shader, &cam, Vector4(1,1,1,1), 500.0f);
 
 	//Use flat.fs since no texture is provided
-	/*
+	
 	//objects of the map
 	for (size_t i = 0; i < entities.size(); i++)
 	{
 		//optional
 		Matrix44 entityModel = entities[i]->model;
-		EntityMesh* entityPoint = new EntityMesh(GL_TRIANGLES, entityModel, Mesh::Get("data/sphere.obj"), NULL, shader, Vector4(0.568f, 0.568f, 0.568f, 1));
-		entityPoint->model.scale(1.5f, 1.5f, 1.5f);
-		entityPoint->render();
+		entityModel.scale(1.5f, 1.5f, 1.5f);
+		renderMesh(GL_TRIANGLES, entityModel, Mesh::Get("data/sphere.obj"), NULL, shader, &cam, Vector4(0.568f, 0.568f, 0.568f, 1));
 
 	}
-	for (size_t i = 0; i < chests.size(); i++)
-	{
-		//optional
-		Matrix44 entityModel = entities[i]->model;
-		EntityMesh* entityPoint = new EntityMesh(GL_TRIANGLES, entityModel, Mesh::Get("data/sphere.obj"), NULL, shader, Vector4(0.501f, 0.309f, 0.058f, 1));
-		entityPoint->model.scale(1.5f, 1.5f, 1.5f);
-		entityPoint->render();
-
-	}
-
-
 
 	//enemies as a red point
 	for (size_t i = 0; i < enemies.size(); i++)
 	{
 		Matrix44 enemyModel = enemies[i]->model;
-		EntityMesh* enemyPoint = new EntityMesh(GL_TRIANGLES, enemyModel , Mesh::Get("data/sphere.obj"), NULL , shader, Vector4(1, 0, 0, 1));
-		
-		enemyPoint->model.scale(1.5f, 1.5f, 1.5f);
-		enemyPoint->render();
-
+		enemyModel.scale(1.5f, 1.5f, 1.5f);
+		renderMesh(GL_TRIANGLES, enemyModel, Mesh::Get("data/sphere.obj"), NULL, shader, &cam, Vector4(1, 0, 0, 1));
 	}
 	//we as a green point
 
-	EntityMesh* playerPoint = new EntityMesh(GL_TRIANGLES, playerModel, Mesh::Get("data/sphere.obj"), NULL, shader, Vector4(0, 1, 0, 1));
-	playerPoint->model.scale(1.5f, 1.5f, 1.5f);
-	playerPoint->render();
-	*/
+	Matrix44 playerPoint = player->model;
+	playerPoint.scale(1.5f, 1.5f, 1.5f);
+	renderMesh(GL_TRIANGLES, playerPoint, Mesh::Get("data/sphere.obj"), NULL, shader, &cam, Vector4(1, 1, 0, 1));
+	
 	//restore viewport
 	glViewport(0, 0, window_width, window_height);
-
 }
 
 void renderEnemyWeapon(EntityEnemy* enemy) {
@@ -962,8 +988,21 @@ void renderEnemyGUI(EntityEnemy* enemy) {
 			//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
 			if (dist < enemy->sightDistance || enemy->markedTarget)
 			{
-				if (playerScreen.z < 1.0f)
-					renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
+				if (playerScreen.z < 1.0f){
+					if (enemy->hearts >= 4)
+					{
+						if (i >= 4)
+						{
+							renderGUI(playerScreen.x - 25 + 25 * (i % 3), game->window_height - playerScreen.y + 25, 25.0f, 25.0f, heartTex, true);
+						}else{
+							renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
+						}
+					}
+					else
+					{
+						renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
+					}
+				}	
 			}
 
 		}
@@ -986,7 +1025,7 @@ void setCamera(Camera *cam, Matrix44 model)
 	if (player->cameraLocked)
 	{
 		world.camera_inverse = false;
-		Vector3 eye = model * Vector3(0.0f, 4.0f, 4.0f);
+		Vector3 eye = model * Vector3(0.0f, 4.0f, 6.0f);
 		Vector3 center = model * Vector3(0.0f, 0.0f, -10.0f);
 		Vector3 up = model.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
 
@@ -1036,7 +1075,7 @@ Vector3 checkCollision(Vector3 target)
 	for (size_t i = 0; i < world.enemies.size(); i++)
 	{
 		if (world.enemies[i]->weapon->mesh->testSphereCollision(world.enemies[i]->weaponModel, centerCharacter, 0.75, coll, collnorm) && player->hitTimer == 0.0f
-			&& (world.enemies[i]->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && world.enemies[i]->animTimer >= world.enemies[i]->hitRegion)) {
+			&& (world.enemies[i]->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && world.enemies[i]->animTimer >= world.enemies[i]->hitRegion) && world.level_info.level != 0) {
 			//PlayGameSound("data/hit.wav");
 			player->hitTimer = player->animations[player->currentAnim]->duration;
 			player->hearts -= world.enemies[i]->strength;
@@ -1272,8 +1311,11 @@ void takeEntity(Camera* cam) {
 			else if (world.chests[i]->type == CHEST_ID::CHEST_HEART) {
 				player->hearts += 1;
 			}
-			else {
+			else if (world.chests[i]->type == CHEST_ID::CHEST_STRENGTH) {
 				player->strength += 1;
+			}
+			else {
+				player->runSpeed += 5.0f;
 			}
 			
 			for (size_t j = 0; j < world.collidable_entities.size(); j++)
@@ -1281,8 +1323,6 @@ void takeEntity(Camera* cam) {
 				if (world.collidable_entities[j]->chest_id == chests_address[i]->collidable_id)
 				{
 					world.collidable_entities.erase(world.collidable_entities.begin() + j);
-					
-					
 				}
 			}
 			chests_address.erase(world.chests.begin() + i);
@@ -1316,7 +1356,7 @@ void checkIfFinish(Camera* cam) {
 	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
 
 	//if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 3.0f) && s_enemies.size() == 0)
-	if (playerPos.distance(entityPos) <= 3.0f && s_enemies.size() == 0)
+	if (playerPos.distance(entityPos) <= 3.0f && (s_enemies.size() == 0 || world.level_info.level == 0))
 	{
 		world.level_info.tag = ACTION_ID::WIN;
 		world.currentStage = STAGE_ID::TRANSITION;
@@ -1383,6 +1423,8 @@ void playerGUI() {
 			renderGUI(30 + 50 * i, 100, 50.0f, 50.0f, heartTex, true);
 		}
 	}
+
+	RenderMinimap(500);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);

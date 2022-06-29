@@ -307,6 +307,10 @@ public:
         markedTarget = false;
         hearts = 3;
 
+        if (level == 0)
+        {
+            hearts = 6;
+        }
         if (level == 1 || level == 0)
         {
             strength = 1;
@@ -331,11 +335,27 @@ public:
             {
                 sightDistance = 10.0f;
                 attackSpeed = 1.25f;
-                hitRegion = 0.55f;
+                hitRegion = 0.9f;
             }
             else if(type == ENEMY_ID::ARCHER)
             {
                 sightDistance = 20.0f;
+                attackSpeed = 2.0f;
+            }
+        }
+        else
+        {
+            strength = 2;
+            velocity = 6.0f;
+            if (type == ENEMY_ID::WARRIOR)
+            {
+                sightDistance = 10.0f;
+                attackSpeed = 1.25f;
+                hitRegion = 0.9f;
+            }
+            else if (type == ENEMY_ID::ARCHER)
+            {
+                sightDistance = 25.0f;
                 attackSpeed = 2.0f;
             }
         }
@@ -354,7 +374,8 @@ public:
 enum CHEST_ID : uint8 {
     CHEST_SWORD,
     CHEST_HEART,
-    CHEST_STRENGTH
+    CHEST_STRENGTH,
+    CHEST_VELOCITY
 };
 
 class EntityChest : public Entity
@@ -398,6 +419,6 @@ public:
 };
 
 void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV = false);
-void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling = 1.0);
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, Vector4 color = Vector4(1, 1, 1, 1), float tiling = 1.0);
 
 #endif 

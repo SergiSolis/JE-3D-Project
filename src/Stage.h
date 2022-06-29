@@ -76,7 +76,7 @@ public:
 };
 
 void renderWorld();
-void RenderMinimap(int widthStart, EntityPlayer* player);
+void RenderMinimap(int widthStart);
 void renderEnemyWeapon(EntityEnemy* enemy);
 void renderEnemyGUI(EntityEnemy* enemy);
 void setCamera(Camera* cam, Matrix44 model);

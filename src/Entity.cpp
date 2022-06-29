@@ -236,7 +236,7 @@ void renderGUI(float x, float y, float w, float h, Texture* tex, bool flipYV) {
 	shader->disable();
 }
 
-void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, float tiling) {
+void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shader* a_shader, Camera* cam, Vector4 color, float tiling) {
 	Game* game = Game::instance;
 
 	assert(a_mesh != NULL, "mesh in renderMesh was null");
@@ -247,7 +247,7 @@ void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shad
 
 
 	//upload uniforms
-	a_shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+	a_shader->setUniform("u_color", color);
 	a_shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
 	if (tex != NULL)
 	{
@@ -262,7 +262,4 @@ void renderMesh(int primitive, Matrix44& model, Mesh* a_mesh, Texture* tex, Shad
 	//disable shader
 	a_shader->disable();
 
-	//if (!game->world.cameraLocked) {
-		a_mesh->renderBounding(model);
-	//}
 }
