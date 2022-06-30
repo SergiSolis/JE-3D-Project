@@ -127,6 +127,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\animation.cpp" />
+    <ClCompile Include="..\..\src\Audio.cpp" />
     <ClCompile Include="..\..\src\camera.cpp" />
     <ClCompile Include="..\..\src\Entity.cpp" />
     <ClCompile Include="..\..\src\extra\coldet\box.cpp" />
@@ -155,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\animation.h" />
+    <ClInclude Include="..\..\src\Audio.h" />
     <ClInclude Include="..\..\src\camera.h" />
     <ClInclude Include="..\..\src\Entity.h" />
     <ClInclude Include="..\..\src\extra\coldet\box.h" />

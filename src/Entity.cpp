@@ -125,7 +125,7 @@ void EntityPlayer::render() {
 
 	//do the draw call
 	mesh->mesh->renderAnimated(mesh->primitive, &resultSk);
-
+	Mesh::Get("data/skeleton_mixamo.mesh")->renderAnimated(mesh->primitive, &resultSk);
 	//disable shader
 	mesh->shader->disable();
 

@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "Stage.h"
 #include "includes.h"
+#include "Audio.h"
 
 enum eCellType : uint8 {
 	SEA,
@@ -72,6 +73,7 @@ struct levelInfo {
 	CHEST_ID last_chest;
 	int last_player_hearts;
 	int last_player_strength;
+	int last_player_run_speed;
 };
 
 enum TITLE_OPTIONS : uint8 {
@@ -89,8 +91,6 @@ enum MENU_OPTIONS : uint8 {
 class World {
 public:
 
-	float TIME_TRIAL_LVL_1 = 200.0f;
-
 	Mesh* mesh = NULL;
 	Texture* texture = NULL;
 	Shader* shader = NULL;
@@ -100,11 +100,18 @@ public:
 
 	EntityPlayer* player;
 
+	std::vector<Stage*> stages; 
+	STAGE_ID currentStage;
+	const int NUM_SLIDES = 6;
+	int currentSlide;
+
 
 	std::vector<EntityMesh*> static_entities;
 	std::vector<EntityChest*> chests;
 
 	std::vector<EntityEnemy*> enemies;
+
+	EntityEnemy* last_enemy;
 
 	//std::vector<std::shared_ptr<Entity*>> collidable_entities;
 
@@ -124,8 +131,7 @@ public:
 	bool camera_inverse;
 	bool mouseLocked = true;
 
-	std::vector<Stage*> stages;
-	STAGE_ID currentStage;
+
 
 	GameMap* gamemap;
 	sPropViewData viewDatas[6];
@@ -151,17 +157,13 @@ public:
 
 	Mesh* exit_open;
 
-	float timeTrial = TIME_TRIAL_LVL_1;
-
-	
-
 	bool sPressed = false;
 	const int numBullets = 100;
 	//std::vector<sBullet> bullets;
 	sBullet bullets[100];
 	bool bulletOnce = false;
 	
-	HCHANNEL backgroundSound;
+	Audio audio;
 
 	void loadWorld();
 	void setConfiguration();
@@ -171,8 +173,6 @@ public:
 	void addEntity();
 	void deleteEntity();
 	void loadLevel();
-	void PlaySoundWorld(const char* fileName);
-	void StopSoundWorld();
 };
 
 GameMap* loadGameMap(const char* filename);

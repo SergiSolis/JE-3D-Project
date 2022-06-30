@@ -24,11 +24,12 @@ void World::loadWorld() {
 	}
 	
 
-	currentStage = STAGE_ID::TITLE;
+	currentStage = STAGE_ID::INTRO;
 	titleOption = TITLE_OPTIONS::PLAY_GAME;
 	menuOption = MENU_OPTIONS::RETURN;
 
-	stages.reserve(7);
+	stages.reserve(8);
+	stages.push_back(new introStage());
 	stages.push_back(new titleStage());
 	stages.push_back(new tutorialStage());
 	stages.push_back(new playStage());
@@ -37,16 +38,18 @@ void World::loadWorld() {
 	stages.push_back(new menuStage());
 	stages.push_back(new endStage());
 
+	currentSlide = 0;
+
 	skyModel = Matrix44();
 	skyMesh = Mesh::Get("data/cielo.ASE");
-	skyTex = Texture::Get("data/night.tga");
+	skyTex = Texture::Get("data/sky.jpg");
 	sky = new EntityMesh(GL_TRIANGLES, skyModel, skyMesh, skyTex, shader);
 
 	exit_open = Mesh::Get("data/exit_open.obj");
 
 	Matrix44 groundModel;
 	Mesh* groundMesh = new Mesh();
-	groundMesh->createPlane(1000);
+	groundMesh->createPlane(500);
 	ground = new EntityMesh(GL_TRIANGLES, groundModel, groundMesh, Texture::Get("data/ground.jpg"), shader, Vector4(1,1,1,1), 500.0f);
 	cameraLocked = true;
 
@@ -73,12 +76,27 @@ void World::loadWorld() {
 	//unifyCollidableEntities();
 
 	level_info.tag = ACTION_ID::NO_ACTION;
-	level_info.space_pressed = 0.0f;
+	level_info.space_pressed = 2.0f;
 
 	if (BASS_Init(-1, 44100, 0, 0, NULL) == false) //-1 significa usar el por defecto del sistema operativo
 	{
 		std::cout << "Error init BASS" << std::endl;
 	}
+
+	audio.LoadSample("data/background.wav");
+	audio.LoadSample("data/background1.wav");
+	audio.LoadSample("data/background1.wav");
+	audio.LoadSample("data/sword.wav");
+	audio.LoadSample("data/arrow.wav");
+	audio.LoadSample("data/hit.wav");
+	audio.LoadSample("data/hit_enemy.mp3");
+	audio.LoadSample("data/hit_enemy.mp3");
+	audio.LoadSample("data/dead_enemy.mp3");
+	audio.LoadSample("data/jump.wav");
+	audio.LoadSample("data/touch_ground.wav");
+	audio.LoadSample("data/chest.wav");
+
+
 	//std::cout << "static_entities: " << static_entities.size() << std::endl;
 	//camera_inverse = false;
 }
@@ -139,10 +157,14 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 				else if (index == 6) {
 					prop = viewDatas[3];
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::WARRIOR);
-					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
-					enenmy->spawnPos = enenmy->pos;
-					enemies.push_back(enenmy);
+					EntityEnemy* enemy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::WARRIOR);
+					enemy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+					enemy->spawnPos = enemy->pos;
+					enemies.push_back(enemy);
+					EntityEnemy* l_enemy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::WARRIOR);
+					l_enemy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+					l_enemy->spawnPos = enemy->pos;
+					last_enemy = l_enemy;
 
 				}
 				//arquero
@@ -190,6 +212,14 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					cellModel.rotate(90 * DEG2RAD, Vector3(0, 1, 0));
 					EntityMesh* entity = new EntityMesh(GL_TRIANGLES, cellModel, prop.mesh, prop.texture, shader);
 					entities.push_back(entity);
+				}
+				else if (index == 14) {
+					prop = viewDatas[4];
+					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::ARCHER);
+					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
+					enenmy->spawnPos = enenmy->pos;
+					enemies.push_back(enenmy);
 				}
 			}
 		}
@@ -255,7 +285,7 @@ GameMap* loadGameMap(const char* filename)
 void World::loadLevel() {
 	if (level_info.tag == ACTION_ID::WIN) {
 		level_info.level += 1;
-		if (level_info.level == 4) {
+		if (level_info.level == 6) {
 			currentStage = STAGE_ID::END;
 			return;
 		}
@@ -263,15 +293,12 @@ void World::loadLevel() {
 	}
 
 	if (level_info.level == 1) {
-		StopSoundWorld();
-		PlaySoundWorld("data/background1.wav");
+		audio.PlayGameSound(0);
 		player->currentItem = ITEM_ID::NONE;
 
 	}
 	else if (level_info.level == 0)
 	{
-		StopSoundWorld();
-		PlaySoundWorld("data/background.wav");
 		player->currentItem = ITEM_ID::SWORD;
 	}
 	else {
@@ -292,10 +319,6 @@ void World::loadLevel() {
 	gamemap = loadGameMap(path);
 	importMap(static_entities);
 	unifyCollidableEntities();
-	if (level_info.level != 0) {
-		
-		timeTrial = TIME_TRIAL_LVL_1;
-	}
 	
 	level_info.tag == ACTION_ID::NO_ACTION;
 	
@@ -315,6 +338,7 @@ void World::loadLevel() {
 			player->hearts = level_info.last_player_hearts;
 		}
 		player->strength = level_info.last_player_strength;
+		player->runSpeed = level_info.last_player_run_speed;
 	}
 	player->hitTimer = 0.0f;
 	player->jaw = 0;
@@ -322,19 +346,6 @@ void World::loadLevel() {
 	//camera_inverse = false;
 
 	currentStage = STAGE_ID::PLAY;
-}
-
-void World::PlaySoundWorld(const char* fileName) {
-	HSAMPLE hSample = loadSample(fileName);
-
-	backgroundSound = BASS_SampleGetChannel(hSample, false);
-
-	BASS_ChannelPlay(backgroundSound, true);
-}
-
-void World::StopSoundWorld() {
-
-	BASS_ChannelStop(backgroundSound);
 }
 
 HSAMPLE loadSample(const char* fileName) {

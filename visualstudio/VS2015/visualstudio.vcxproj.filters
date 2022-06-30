@@ -67,6 +67,7 @@
     <ClCompile Include="..\..\src\World.cpp" />
     <ClCompile Include="..\..\src\Entity.cpp" />
     <ClCompile Include="..\..\src\Stage.cpp" />
+    <ClCompile Include="..\..\src\Audio.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\camera.h" />
@@ -131,6 +132,7 @@
     <ClInclude Include="..\..\src\World.h" />
     <ClInclude Include="..\..\src\Entity.h" />
     <ClInclude Include="..\..\src\Stage.h" />
+    <ClInclude Include="..\..\src\Audio.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extra">

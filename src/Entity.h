@@ -245,6 +245,7 @@ public:
     Skeleton resultSk;
 
     EntityMesh* weapon;
+    EntityMesh* second_weapon;
 
     bool markedTarget;
 
@@ -272,22 +273,42 @@ public:
         type = type_id;
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
-        animations.reserve(5);
-        if (type == ENEMY_ID::WARRIOR)
+        
+
+        if (type == ENEMY_ID::BOSS)
         {
+            animations.reserve(8);
             animations.push_back(Animation::Get("data/warrior_idle.skanim"));
             animations.push_back(Animation::Get("data/walk.skanim"));
             animations.push_back(Animation::Get("data/warrior_attack.skanim"));
             animations.push_back(Animation::Get("data/hit.skanim"));
-            animations.push_back(Animation::Get("data/dead.skanim")); 
-        }
-        else if(type == ENEMY_ID::ARCHER) {
+            animations.push_back(Animation::Get("data/dead.skanim"));
             animations.push_back(Animation::Get("data/archer_idle.skanim"));
             animations.push_back(Animation::Get("data/walk.skanim"));
             animations.push_back(Animation::Get("data/archer_attack.skanim"));
             animations.push_back(Animation::Get("data/archer_hit.skanim"));
             animations.push_back(Animation::Get("data/archer_dead.skanim"));
         }
+        else
+        {
+            animations.reserve(5);
+            if (type == ENEMY_ID::WARRIOR)
+            {
+                animations.push_back(Animation::Get("data/warrior_idle.skanim"));
+                animations.push_back(Animation::Get("data/walk.skanim"));
+                animations.push_back(Animation::Get("data/warrior_attack.skanim"));
+                animations.push_back(Animation::Get("data/hit.skanim"));
+                animations.push_back(Animation::Get("data/dead.skanim"));
+            }
+            else if (type == ENEMY_ID::ARCHER) {
+                animations.push_back(Animation::Get("data/archer_idle.skanim"));
+                animations.push_back(Animation::Get("data/walk.skanim"));
+                animations.push_back(Animation::Get("data/archer_attack.skanim"));
+                animations.push_back(Animation::Get("data/archer_hit.skanim"));
+                animations.push_back(Animation::Get("data/archer_dead.skanim"));
+            }
+        }
+        
         currentAnim = ENEMY_ANIM_ID::ENEMY_IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
@@ -302,64 +323,70 @@ public:
             weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/bow.obj"), Texture::Get("data/color-atlas.png"), shader);
         }
         
-
         jaw = 180;
         markedTarget = false;
         hearts = 3;
 
-        if (level == 0)
+        if (type == ENEMY_ID::BOSS)
         {
-            hearts = 6;
+            hearts = 12;
+            strength = 3;
         }
-        if (level == 1 || level == 0)
-        {
-            strength = 1;
-            
-            velocity = 3.0f;
-            if (type == ENEMY_ID::WARRIOR)
+        else {
+            if (level == 0)
             {
-                sightDistance = 5.0f;
-                attackSpeed = 1.75f;
-                hitRegion = 0.7f;
+                hearts = 6;
             }
-            else if (type == ENEMY_ID::ARCHER)
+            if (level == 1 || level == 0)
             {
-                sightDistance = 15.0f;
-                attackSpeed = 5.0f;
-            }
-        }
-        else if (level == 2) {
-            strength = 2;
-            velocity = 6.0f;
-            if (type == ENEMY_ID::WARRIOR)
-            {
-                sightDistance = 10.0f;
-                attackSpeed = 1.25f;
-                hitRegion = 0.9f;
-            }
-            else if(type == ENEMY_ID::ARCHER)
-            {
-                sightDistance = 20.0f;
-                attackSpeed = 2.0f;
-            }
-        }
-        else
-        {
-            strength = 2;
-            velocity = 6.0f;
-            if (type == ENEMY_ID::WARRIOR)
-            {
-                sightDistance = 10.0f;
-                attackSpeed = 1.25f;
-                hitRegion = 0.9f;
-            }
-            else if (type == ENEMY_ID::ARCHER)
-            {
-                sightDistance = 25.0f;
-                attackSpeed = 2.0f;
-            }
-        }
+                strength = 1;
 
+                velocity = 3.0f;
+                if (type == ENEMY_ID::WARRIOR)
+                {
+                    sightDistance = 5.0f;
+                    attackSpeed = 1.75f;
+                    hitRegion = 0.7f;
+                }
+                else if (type == ENEMY_ID::ARCHER)
+                {
+                    sightDistance = 15.0f;
+                    attackSpeed = 5.0f;
+                }
+            }
+            else if (level == 2) {
+                strength = 2;
+                velocity = 8.0f;
+                if (type == ENEMY_ID::WARRIOR)
+                {
+                    sightDistance = 10.0f;
+                    attackSpeed = 1.25f;
+                    hitRegion = 0.9f;
+                }
+                else if (type == ENEMY_ID::ARCHER)
+                {
+                    sightDistance = 20.0f;
+                    attackSpeed = 2.0f;
+                }
+            }
+            else
+            {
+                strength = 2;
+                velocity = 6.0f;
+                if (type == ENEMY_ID::WARRIOR)
+                {
+                    sightDistance = 10.0f;
+                    attackSpeed = 1.25f;
+                    hitRegion = 0.9f;
+                }
+                else if (type == ENEMY_ID::ARCHER)
+                {
+                    sightDistance = 25.0f;
+                    attackSpeed = 2.0f;
+                }
+            }
+        }
+        
         hitTimer = 0.0f;
         animTimer = 0.0f;
         time = 0.0f;

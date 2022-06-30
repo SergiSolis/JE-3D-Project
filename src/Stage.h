@@ -7,9 +7,10 @@
 #include "camera.h"
 #include "animation.h"
 #include "Entity.h"
-#include "extra/bass.h"
+#include "Audio.h"
 
 enum STAGE_ID : uint8 {
+	INTRO,
 	TITLE,
 	TUTORIAL,
 	PLAY,
@@ -24,6 +25,13 @@ public:
 	//Stage();
 	virtual void render() {};
 	virtual void update(float dt) {};
+};
+
+class introStage : public Stage {
+public:
+	//titleStage();
+	virtual void render();
+	virtual void update(float dt);
 };
 
 class titleStage : public Stage {
@@ -76,7 +84,7 @@ public:
 };
 
 void renderWorld();
-void RenderMinimap(int widthStart);
+void RenderMinimap();
 void renderEnemyWeapon(EntityEnemy* enemy);
 void renderEnemyGUI(EntityEnemy* enemy);
 void setCamera(Camera* cam, Matrix44 model);
@@ -100,7 +108,6 @@ float sign(float value);
 
 int getFreeBullet();
 bool spawnBullet(sBullet& newBulletData, int enemyIndex);
-
-void PlayGameSound(const char* fileName);
-
+void tutorialChangeEnemy();
+float lerp_f(float a, float b, float f);
 #endif 
