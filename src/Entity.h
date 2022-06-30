@@ -245,7 +245,8 @@ public:
     Skeleton resultSk;
 
     EntityMesh* weapon;
-    EntityMesh* second_weapon;
+    float bossHitted;
+    int currentWeapon;
 
     bool markedTarget;
 
@@ -263,6 +264,7 @@ public:
     float shootTimer;
 
     float attackSpeed;
+    float bowSpeed;
 
     ENEMY_ID type;
 
@@ -273,42 +275,32 @@ public:
         type = type_id;
         Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
         
-        
+        animations.reserve(5);
 
         if (type == ENEMY_ID::BOSS)
         {
-            animations.reserve(8);
+            animations.push_back(Animation::Get("data/archer_idle.skanim"));
+            animations.push_back(Animation::Get("data/archer_attack.skanim"));
+            animations.push_back(Animation::Get("data/warrior_attack.skanim"));
+            animations.push_back(Animation::Get("data/hit.skanim"));
+            animations.push_back(Animation::Get("data/dead.skanim"));
+        }
+        else if (type == ENEMY_ID::WARRIOR)
+        {
             animations.push_back(Animation::Get("data/warrior_idle.skanim"));
             animations.push_back(Animation::Get("data/walk.skanim"));
             animations.push_back(Animation::Get("data/warrior_attack.skanim"));
             animations.push_back(Animation::Get("data/hit.skanim"));
             animations.push_back(Animation::Get("data/dead.skanim"));
+        }
+        else if (type == ENEMY_ID::ARCHER) {
             animations.push_back(Animation::Get("data/archer_idle.skanim"));
             animations.push_back(Animation::Get("data/walk.skanim"));
             animations.push_back(Animation::Get("data/archer_attack.skanim"));
             animations.push_back(Animation::Get("data/archer_hit.skanim"));
             animations.push_back(Animation::Get("data/archer_dead.skanim"));
         }
-        else
-        {
-            animations.reserve(5);
-            if (type == ENEMY_ID::WARRIOR)
-            {
-                animations.push_back(Animation::Get("data/warrior_idle.skanim"));
-                animations.push_back(Animation::Get("data/walk.skanim"));
-                animations.push_back(Animation::Get("data/warrior_attack.skanim"));
-                animations.push_back(Animation::Get("data/hit.skanim"));
-                animations.push_back(Animation::Get("data/dead.skanim"));
-            }
-            else if (type == ENEMY_ID::ARCHER) {
-                animations.push_back(Animation::Get("data/archer_idle.skanim"));
-                animations.push_back(Animation::Get("data/walk.skanim"));
-                animations.push_back(Animation::Get("data/archer_attack.skanim"));
-                animations.push_back(Animation::Get("data/archer_hit.skanim"));
-                animations.push_back(Animation::Get("data/archer_dead.skanim"));
-            }
-        }
-        
+
         currentAnim = ENEMY_ANIM_ID::ENEMY_IDLE;
 
         Texture* playerTex = Texture::Get("data/PolygonMinis_Texture_01_A.png");
@@ -322,15 +314,25 @@ public:
         else if (type == ENEMY_ID::ARCHER) {
             weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/bow.obj"), Texture::Get("data/color-atlas.png"), shader);
         }
+        else {
+            weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/bow.obj"), Texture::Get("data/color-atlas.png"), shader);
+            currentWeapon = 1;
+        }
         
         jaw = 180;
         markedTarget = false;
         hearts = 3;
+        bossHitted = 0.0f;
 
         if (type == ENEMY_ID::BOSS)
         {
             hearts = 12;
-            strength = 3;
+            strength = 2;
+            velocity = 8.0f;
+            sightDistance = 15.0f;
+            attackSpeed = 1.25f;
+            hitRegion = 0.7f;
+            bowSpeed = 1.5f;     
         }
         else {
             if (level == 0)
@@ -390,7 +392,7 @@ public:
         hitTimer = 0.0f;
         animTimer = 0.0f;
         time = 0.0f;
-        if (type == ENEMY_ID::ARCHER) {
+        if (type == ENEMY_ID::ARCHER || type == ENEMY_ID::BOSS) {
             shootTimer = 0.0f;
         }
     }

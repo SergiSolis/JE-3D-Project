@@ -102,6 +102,8 @@ void rotateSelected(float angleDegrees);
 void playerInventory();
 void playerGUI();
 void handleEnemies(float seconds_elapsed);
+void handleBoss(float seconds_elapsed);
+void checkEnemyHits(EntityEnemy* enemy);
 
 float sign(float value);
 

@@ -13,10 +13,11 @@ email: sergi.solis01@estudiant.upf.edu
 - EDITOR: TAB
 - DEBUG: K
 - MENU: ESC
-- TITLE / MENU CONTROLLER: ARROWS (⬆ / ⬇), ENTER
+- TITLE / MENU CONTROLLER: ARROWS (⬆ / ⬇), SPACE
 
 *INFO*
 
 - Debes matar a todos los enemigos para que se abra la puerta y pasar al siguiente nivel
+- El código del BOSS está poco limpio por falta de horas.
 
 *YOUTUBE LINK*

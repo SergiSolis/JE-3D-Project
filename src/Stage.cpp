@@ -105,8 +105,7 @@ void introStage::render()
 		glDisable(GL_BLEND);
 	}
 	else if (world.currentSlide == 4) {
-		drawText(220, 400, "Release the curse.", Vector3(1, 1, 1), 3);
-
+		drawText(260, 400, "Release the curse.", Vector3(1, 1, 1), 3);
 
 		//RENDER ALL GUI
 		glDisable(GL_DEPTH_TEST);
@@ -130,7 +129,7 @@ void introStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 
-	std::cout << "ASLIDE: " << world.currentSlide << std::endl;
+	world.audio.PlayGameSound(AUDIO_ID::INTRO_SOUND);
 
 	if (world.currentSlide == 5)
 	{
@@ -168,8 +167,8 @@ void titleStage::render()
 	Texture* picutreTex = Texture::Get("data/background.png");
 	renderGUI(400, 300, 900.0f, 624.0f, picutreTex, true);
 
-	//Texture* titleTex = Texture::Get("data/title.png");
-	//renderGUI(0, 0, 1000.0f, 1000.0f, titleTex, true);
+	drawText(50, 50, "UNDEAD", Vector3(0.705, 0.611, 0.611), 6);
+	drawText(50, 100, "REDEMPTION", Vector3(0.705, 0.611, 0.611), 6);
 
 	if (world.titleOption == TITLE_OPTIONS::PLAY_GAME)
 	{
@@ -213,6 +212,9 @@ void titleStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
+
+	world.audio.ResetAudio();
+	world.audio.PlayGameSound(AUDIO_ID::INTRO_SOUND);
 
 	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
 	{
@@ -285,7 +287,7 @@ void tutorialStage::render()
 
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
-	drawText(2, 50, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
+	drawText(4, 40, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
 
 	//RENDER ALL GUI
 	glDisable(GL_DEPTH_TEST);
@@ -349,7 +351,7 @@ void playStage::render()
 	//render the FPS, Draw Calls, etc
 	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
 	//drawText(2, 25, "Time trial: "  + std::to_string(world.timeTrial), Vector3(1, 1, 0), 2);
-	drawText(2, 25, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
+	drawText(4, 40, "Actual level: " + std::to_string(world.level_info.level), Vector3(1, 1, 0), 2);
 
 	int window_width = Game::instance->window_width;
 	int window_height = Game::instance->window_height;
@@ -402,7 +404,7 @@ void playStage::update(float seconds_elapsed)
 	{
 		s_enemies[i]->hitTimer = max(0.0f, s_enemies[i]->hitTimer - seconds_elapsed);
 
-		if (s_enemies[i]->type == ENEMY_ID::ARCHER)
+		if (!s_enemies[i]->type == ENEMY_ID::WARRIOR)
 		{
 			s_enemies[i]->shootTimer = max(0.0f, s_enemies[i]->shootTimer - seconds_elapsed);
 		}
@@ -588,9 +590,14 @@ void playStage::update(float seconds_elapsed)
 		player->pos = finalPos;
 	}
 
-
-	handleEnemies(seconds_elapsed);
-
+	if (world.level_info.level == 5)
+	{
+		world.enemies[0]->bossHitted = max(0.0f, world.enemies[0]->bossHitted - seconds_elapsed);
+		handleBoss(seconds_elapsed);
+	}
+	else {
+		handleEnemies(seconds_elapsed);
+	}
 }
 
 void transitionStage::render()
@@ -702,12 +709,39 @@ void transitionStage::render()
 		world.level_info.last_player_strength = player->strength;
 		world.level_info.last_player_run_speed = player->runSpeed;
 		drawText(80, 80, "YOU WIN THE LEVEL", Vector3(1, 1, 1), 6);
+		//RENDER ALL GUI
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		Texture* picutreTex = Texture::Get("data/strength.png");
+		renderGUI(400, 300, 200.0f, 200.0f, picutreTex, true);
+
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+
 		if (int(game->time) % 2 == 0) {
 			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
 		}
 	}
 	else if (world.level_info.tag == ACTION_ID::DEAD) {
 		drawText(80, 80, "YOU LOSE THE LEVEL", Vector3(1, 1, 1), 6);
+
+		//RENDER ALL GUI
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		Texture* picutreTex = Texture::Get("data/goblin.png");
+		renderGUI(400, 300, 200.0f, 200.0f, picutreTex, true);
+
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+
 		if (int(game->time) % 2 == 0) {
 			drawText(200, 500, "Press SPACE to continue", Vector3(1, 1, 1), 3);
 		}
@@ -805,32 +839,32 @@ void menuStage::render()
 	if (world.menuOption == MENU_OPTIONS::RETURN)
 	{
 		if (int(game->time) % 2 == 0) {
-			drawText(100, 200, "RETURN", Vector3(1, 1, 1), 6);
+			drawText(100, 300, "RETURN", Vector3(1, 1, 1), 6);
 		}
 	}
 	else
 	{
-		drawText(100, 200, "RETURN", Vector3(1, 1, 1), 6);
+		drawText(70, 300, "RETURN", Vector3(1, 1, 1), 6);
 	}
 	if (world.menuOption == MENU_OPTIONS::RESTART_GAME)
 	{
 		if (int(game->time) % 2 == 0) {
-			drawText(100, 260, "RESTART GAME", Vector3(1, 1, 1), 6);
+			drawText(100, 375, "RESTART GAME", Vector3(1, 1, 1), 6);
 		}
 	}
 	else
 	{
-		drawText(100, 260, "RESTART GAME", Vector3(1, 1, 1), 6);
+		drawText(70, 375, "RESTART GAME", Vector3(1, 1, 1), 6);
 	}
 	if (world.menuOption == MENU_OPTIONS::EXIT)
 	{
 		if (int(game->time) % 2 == 0) {
-			drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
+			drawText(100, 450, "EXIT", Vector3(1, 1, 1), 6);
 		}
 	}
 	else
 	{
-		drawText(100, 320, "EXIT", Vector3(1, 1, 1), 6);
+		drawText(70, 450, "EXIT", Vector3(1, 1, 1), 6);
 	}
 
 	//RENDER ALL GUI
@@ -900,7 +934,7 @@ void endStage::render()
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 	// set the clear color (the background color)
-	glClearColor(1.0, 0.0, 1.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	// set flags
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -912,7 +946,16 @@ void endStage::render()
 	// set the camera as default
 	game->camera->enable();
 
-	//renderWorld();
+	Texture* picutreTex = Texture::Get("data/background.png");
+	renderGUI(400, 300, 900.0f, 624.0f, picutreTex, true);
+
+	drawText(75, 250, "YOU HAVE BEEN FREED", Vector3(1, 1, 1), 6);
+	drawText(130, 350, "FROM THE CURSE!!!", Vector3(1, 1, 1), 6);
+
+	if (int(game->time) % 2 == 0) {
+		drawText(200, 500, "Press SPACE to EXIT", Vector3(1, 1, 1), 3);
+	}
+
 	//swap between front buffer and back buffer
 	SDL_GL_SwapWindow(game->window);
 }
@@ -923,9 +966,8 @@ void endStage::update(float seconds_elapsed)
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 	//std::cout << "END STAGE" << std::endl;
-	if (Input::isKeyPressed(SDL_SCANCODE_SPACE)) {
-		world.currentStage = STAGE_ID::PLAY;
-		world.loadLevel();
+	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) || Input::isKeyPressed(SDL_SCANCODE_K)) {
+		game->must_exit = true;
 	}
 	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
 	{
@@ -1092,26 +1134,46 @@ void RenderMinimap()
 }
 
 void renderEnemyWeapon(EntityEnemy* enemy) {
+	Shader* shader = Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs");
+	Game* game = Game::instance;
+	World& world = game->world;
 	enemy->resultSk = enemy->animations[enemy->currentAnim]->skeleton;
-	if (enemy->type == ENEMY_ID::WARRIOR)
+	if (enemy->type == ENEMY_ID::WARRIOR || (enemy->type == ENEMY_ID::BOSS && enemy->currentWeapon == 2))
 	{
 		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_RightHandThumb1", false);
 		handLocalMatrix.rotate(60 * DEG2RAD, Vector3(1, 0, 0));
 		handLocalMatrix.rotate(150 * DEG2RAD, Vector3(0, 1, 0));
-		handLocalMatrix.translateGlobal(-20, -1, -17.5);
+		
+		if (enemy->type == ENEMY_ID::BOSS)
+		{
+			handLocalMatrix.translateGlobal(-20, -1, -17.5);
+			enemy->weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), world.sword->mesh, world.sword->texture, shader);
+		}
+
 		Matrix44& actualModel = enemy->weapon->model;
+		
 		actualModel = handLocalMatrix * enemy->visualModel;
-		actualModel.scale(1.75f, 1.75f, 1.75f);
+		if (!enemy->type == ENEMY_ID::BOSS)
+		{
+			actualModel.scale(2.0f, 2.0f, 2.0f);
+
+		}
 		enemy->weaponModel = actualModel;
 		enemy->weaponModel.rotate(-80 * DEG2RAD, Vector3(1, 0, 0));
 		enemy->weaponModel.rotate(-100 * DEG2RAD, Vector3(0, 1, 0));
 		enemy->weaponModel.rotate(20 * DEG2RAD, Vector3(0, 0, 1));
 		enemy->weaponModel.scale(80.0f, 80.0f, 80.0f);
 		enemy->weaponModel.translate(0.15, -0.15, -0.15);
-		enemy->weapon->mesh->renderBounding(enemy->weaponModel);
+		enemy->weapon->render();
+
 	}
-	else
+	else if (enemy->type == ENEMY_ID::ARCHER || (enemy->type == ENEMY_ID::BOSS && enemy->currentWeapon == 1))
 	{
+		if (enemy->type == ENEMY_ID::BOSS)
+		{
+			enemy->weapon = new EntityMesh(GL_TRIANGLES, Matrix44(), world.bow->mesh, world.bow->texture, shader);
+
+		}
 		Matrix44 handLocalMatrix = enemy->resultSk.getBoneMatrix("mixamorig_LeftHand", false);
 		handLocalMatrix.rotate(70 * DEG2RAD, Vector3(1, 0, 0));
 		handLocalMatrix.rotate(110 * DEG2RAD, Vector3(0, 0, 1));
@@ -1121,9 +1183,8 @@ void renderEnemyWeapon(EntityEnemy* enemy) {
 		actualModel = handLocalMatrix * enemy->visualModel;
 		enemy->weaponModel = actualModel;
 		actualModel.scale(1.25f, 1.25f, 1.25f);
+		enemy->weapon->render();
 	}
-
-	enemy->weapon->render();
 }
 
 void renderEnemyGUI(EntityEnemy* enemy) {
@@ -1155,21 +1216,35 @@ void renderEnemyGUI(EntityEnemy* enemy) {
 		for (size_t i = 0; i < enemy->hearts; i++)
 		{
 			//renderGUI(30 + 50 * i, 100, 100.0f, 100.0f, heartTex, true);
-			if (dist < enemy->sightDistance || enemy->markedTarget)
+			if (dist < enemy->sightDistance || enemy->markedTarget || enemy->type == ENEMY_ID::BOSS)
 			{
 				if (playerScreen.z < 1.0f){
-					if (enemy->hearts >= 4)
+					if (enemy->type == ENEMY_ID::BOSS)
 					{
-						if (i >= 4)
+						if (i < enemy->hearts / 2)
 						{
-							renderGUI(playerScreen.x - 25 + 25 * (i % 3), game->window_height - playerScreen.y + 25, 25.0f, 25.0f, heartTex, true);
-						}else{
+							renderGUI(300 + 50 * i, 50, 50.0f, 50.0f, heartTex, true);
+						}
+						else {
+							renderGUI(300 + 50 * (i % ((enemy->hearts - 1) / 2)), 100, 50.0f, 50.0f, heartTex, true);
+						}
+
+					}
+					else {
+						if (enemy->hearts >= 4)
+						{
+							if (i >= 4)
+							{
+								renderGUI(playerScreen.x - 25 + 25 * (i % 3), game->window_height - playerScreen.y + 25, 25.0f, 25.0f, heartTex, true);
+							}
+							else {
+								renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
+							}
+						}
+						else
+						{
 							renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
 						}
-					}
-					else
-					{
-						renderGUI(playerScreen.x - 25 + 25 * i, game->window_height - playerScreen.y, 25.0f, 25.0f, heartTex, true);
 					}
 				}	
 			}
@@ -1250,6 +1325,7 @@ Vector3 checkCollision(Vector3 target)
 			player->hearts -= world.enemies[i]->strength;
 			if (player->hearts <= 0)
 			{
+				world.audio.PlayGameSound(AUDIO_ID::DEAD_SOUND);
 				player->time = 0.0f;
 				player->currentAnim = PLAYER_ANIM_ID::PLAYER_DEAD;
 				player->animDuration = player->animations[player->currentAnim]->duration / 2.8f;
@@ -1281,7 +1357,6 @@ Vector3 checkCollision(Vector3 target)
 		if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, bottomCharacter, 0.1, coll, collnorm)) {
 			if (player->pos.y >= coll.y)
 			{
-				std::cout << "TOP COLLISION" << std::endl;
 				Game::instance->world.player->isGrounded = true;
 				player->isGrounded = true;
 				target.y = coll.y + 0.05f;
@@ -1297,8 +1372,7 @@ Vector3 checkCollision(Vector3 target)
 		}
 		if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
 		{
-			std::cout << "COLLISION fromt" << std::endl;
-
+		
 			world.collidable_entities[i]->collision = true;
 
 			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
@@ -1315,8 +1389,6 @@ Vector3 checkCollision(Vector3 target)
 
 		if (world.enemies[i]->mesh->mesh->testSphereCollision(world.enemies[i]->model, centerCharacter, 0.25, coll, collnorm))
 		{
-			std::cout << "COLLISION fromt" << std::endl;
-
 			world.collidable_entities[i]->collision = true;
 
 			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
@@ -1347,8 +1419,6 @@ Vector3 enemyCollision(EntityEnemy* enemy , Vector3 target)
 		Vector3 posEnt = world.collidable_entities[i]->model.getTranslation();
 		if (world.collidable_entities[i]->mesh->testSphereCollision(world.collidable_entities[i]->model, centerCharacter, 0.25, coll, collnorm))
 		{
-			std::cout << "COLLISION fromt" << std::endl;
-
 			world.collidable_entities[i]->collision = true;
 
 			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
@@ -1390,8 +1460,6 @@ void bulletCollision(float seconds_elapsed) {
 		currentBullet.model.setTranslation(next.x, next.y, next.z);
 		currentBullet.ttl -= seconds_elapsed;
 		
-		//std::cout << "TTL: " << currentBullet.ttl << std::endl;
-
 		bool test = currentBullet.mesh->testSphereCollision(currentBullet.model, player->pos, 1.0f, coll, collnorm);
 		if (test == true){
 			world.audio.PlayGameSound(AUDIO_ID::HIT_SOUND);
@@ -1483,12 +1551,8 @@ void takeEntity(Camera* cam) {
 
 		Vector3 entityPos = chest->model.getTranslation();
 
-		//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
-		
-		//if (chest->mesh->testRayCollision(chest->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 3.0f))
 		if (playerPos.distance(entityPos) <= 3.0f)
 		{
-			std::cout << "Object selected: " << std::endl;
 			world.level_info.last_chest = world.chests[i]->type;
 			if (world.chests[i]->type == CHEST_ID::CHEST_SWORD)
 			{
@@ -1540,9 +1604,6 @@ void checkIfFinish(Camera* cam) {
 
 	Vector3 entityPos = entity->model.getTranslation();
 
-	//std::cout << "Player distance to object: " << playerPos.distance(entityPos) << std::endl;
-
-	//if (entity->mesh->testRayCollision(entity->model, rayOrigin, dir, pos, normal) && (playerPos.distance(entityPos) <= 3.0f) && s_enemies.size() == 0)
 	if (playerPos.distance(entityPos) <= 3.0f && (s_enemies.size() == 0 || world.level_info.level == 0))
 	{
 		world.level_info.tag = ACTION_ID::WIN;
@@ -1559,9 +1620,6 @@ void rotateSelected(float angleDegrees) {
 
 	if (selectedEntity == NULL) {
 		return;
-	}
-	else {
-		std::cout << "aaaaaa: " << std::endl;
 	}
 	selectedEntity->model.rotate(angleDegrees * DEG2RAD, Vector3(0, 1, 0));
 }
@@ -1584,8 +1642,6 @@ void playerInventory() {
 
 		player->swordModel = actualModel;
 		player->swordModel.scale(80.0f, 80.0f, 80.0f);
-		//player->swordModel.translateGlobal(-0.5, 0, 0);
-		player->inventory[player->currentItem]->mesh->renderBounding(player->swordModel);
 		player->inventory[player->currentItem]->render();
 	}
 }
@@ -1611,7 +1667,7 @@ void playerGUI() {
 		}
 	}
 
-	if (world.level_info.level != 0)
+	if (world.level_info.level != 0 && world.level_info.level != 5)
 	{
 		RenderMinimap();
 	}
@@ -1648,7 +1704,6 @@ void handleEnemies(float seconds_elapsed) {
 			}
 			if ((dist < enemy->sightDistance || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 			{
-				std::cout << "anim timer: " << enemy->animTimer << std::endl;
 				if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_ATTACK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && enemy->animTimer <= 0.0f))
 				{
 					//PlayGameSound("data/sword.wav");
@@ -1673,8 +1728,6 @@ void handleEnemies(float seconds_elapsed) {
 			if ((dist < enemy->sightDistance || enemy->markedTarget) && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
 			{
 				enemy->markedTarget = true;
-
-				//std::cout << "anim timer: " << enemy->animTimer << std::endl;
 				if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_ATTACK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && enemy->animTimer <= 0.0f))
 				{
 					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
@@ -1710,38 +1763,132 @@ void handleEnemies(float seconds_elapsed) {
 			}
 		}
 
-		Vector3 coll;
-		Vector3 collnorm;
-		Vector3 pushAway;
-		Vector3 returned;
+		checkEnemyHits(enemy);
 
-		Vector3 centerCharacter = enemy->pos + Vector3(0.0f, 1.0f, 0.0f);
+	}
+}
 
-		if (player->currentItem != ITEM_ID::NONE)
+void handleBoss(float seconds_elapsed) {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	EntityEnemy* enemy = world.enemies[0];
+	Matrix44 enemyModel = enemy->model;
+	Vector3 side = enemyModel.rotateVector(Vector3(1, 0, 0)).normalize();
+	Vector3 forward = enemyModel.rotateVector(Vector3(0, 0, -1)).normalize();
+	Vector3 toTarget = player->pos - enemy->pos;
+	float dist = toTarget.length();
+	toTarget.normalize();
+
+	float sideDot = side.dot(toTarget);
+	float forwardDot = forward.dot(toTarget);
+
+
+	if (forwardDot < 0.999f)
+	{
+		enemy->jaw += sign(sideDot) * 90.0f * seconds_elapsed;
+	}
+
+	if (dist < enemy->sightDistance && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
+	{
+		enemy->currentWeapon = 2;
+		if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_ATTACK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_ATTACK && enemy->animTimer <= 0.0f))
 		{
-			if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f 
-				&& (player->currentAnim == PLAYER_ANIM_ID::PLAYER_ATTACK && player->animTimer >= 0.55f)) {
-				
-				world.audio.PlayGameSound(AUDIO_ID::HIT_ENEMY_SOUND);
+			//PlayGameSound("data/sword.wav");
+			enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_ATTACK;
+			enemy->time = 0.0f;
+			enemy->animDuration = enemy->animations[enemy->currentAnim]->duration;
+			enemy->animTimer = enemy->animations[enemy->currentAnim]->duration;
+		}
+		
+	}
+
+	else if (dist > enemy->sightDistance && enemy->hitTimer <= 0.0f && enemy->hearts > 0)
+	{
+		enemy->currentWeapon = 1;
+		if (enemy->currentAnim != ENEMY_ANIM_ID::ENEMY_WALK || (enemy->currentAnim == ENEMY_ANIM_ID::ENEMY_WALK && enemy->animTimer <= 0.0f))
+		{
+			enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_WALK;
+			enemy->time = 0.0f;
+			enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 0.005f;
+			enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 0.005f;
+		}
+
+		if (enemy->shootTimer <= 0.0f)
+		{
+			enemy->shootTimer = enemy->attackSpeed;
+			world.bulletOnce = true;
+			sBullet bullet;
+			bullet.ttl = 5.0f;
+			bullet.mesh = Mesh::Get("data/arrow.obj");
+			bullet.texture = Texture::Get("data/color-atlas.png");
+			bullet.shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
+			bullet.power = 1;
+			//model.rotate(jaw * DEG2RAD, Vector3(0, 1, 0));
+			bullet.author = 0;
+
+			bullet.velocity = Vector3(10, 10, 10) * forward;
+
+			if (spawnBullet(bullet, 0))
+			{
+				std::cout << "Bullet spawned" << std::endl;
+			}
+			else
+			{
+				std::cout << "Bullet NOT spawned" << std::endl;
+			}
+		}
+	}
+	if (enemy->bossHitted != 0.0f) {
+		Vector3 targetPos = enemy->pos - (forward * enemy->velocity * seconds_elapsed);
+		enemy->pos = enemyCollision(enemy, targetPos);
+	}
+	else {
+		if (dist > 4.0f) {
+			Vector3 targetPos = enemy->pos + (forward * enemy->velocity * seconds_elapsed);
+			enemy->pos = enemyCollision(enemy, targetPos);
+		}
+	}
+	checkEnemyHits(enemy);
+}
+
+void checkEnemyHits(EntityEnemy* enemy) {
+	Game* game = Game::instance;
+	World& world = game->world;
+	EntityPlayer* player = world.player;
+
+	Vector3 coll;
+	Vector3 collnorm;
+	Vector3 pushAway;
+	Vector3 returned;
+
+	Vector3 centerCharacter = enemy->pos + Vector3(0.0f, 1.0f, 0.0f);
+
+	if (player->currentItem != ITEM_ID::NONE)
+	{
+		if (player->inventory[player->currentItem]->mesh->testSphereCollision(player->swordModel, centerCharacter, 0.75, coll, collnorm) && enemy->hitTimer == 0.0f
+			&& (player->currentAnim == PLAYER_ANIM_ID::PLAYER_ATTACK && player->animTimer >= 0.55f)) {
+
+			world.audio.PlayGameSound(AUDIO_ID::HIT_ENEMY_SOUND);
+			enemy->time = 0.0f;
+			enemy->hitTimer = player->animations[player->currentAnim]->duration / 2;
+			enemy->hearts -= player->strength;
+			enemy->bossHitted = 4.0f;
+			enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_HIT;
+			enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 2;
+			enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 2;
+
+			if (enemy->hearts <= 0)
+			{
+				world.audio.PlayGameSound(AUDIO_ID::DEAD_ENEMY_SOUND);
 				enemy->time = 0.0f;
-				enemy->hitTimer = player->animations[player->currentAnim]->duration / 2;
-				enemy->hearts -= player->strength;
-				enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_HIT;
+				enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_DEAD;
 				enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 2;
 				enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 2;
 
-				if (enemy->hearts <= 0)
-				{
-					world.audio.PlayGameSound(AUDIO_ID::DEAD_ENEMY_SOUND);
-					enemy->time = 0.0f;
-					enemy->currentAnim = ENEMY_ANIM_ID::ENEMY_DEAD;
-					enemy->animDuration = enemy->animations[enemy->currentAnim]->duration / 2;
-					enemy->animTimer = enemy->animations[enemy->currentAnim]->duration / 2;
-
-				}
 			}
 		}
-
 	}
 }
 

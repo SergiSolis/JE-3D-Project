@@ -162,6 +162,9 @@ public:
 	//std::vector<sBullet> bullets;
 	sBullet bullets[100];
 	bool bulletOnce = false;
+
+	EntityMesh* sword;
+	EntityMesh* bow;
 	
 	Audio audio;
 

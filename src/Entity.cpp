@@ -101,18 +101,6 @@ void EntityPlayer::render() {
 
 	resultSk = animations[currentAnim]->skeleton;
 
-	//blendSkeleton(&player->walk->skeleton, &player->run->skeleton, 0.5f, &player->resultSk);
-
-	//Matrix44& neckLocalMatrix = player->resultSk.getBoneMatrix("mixamorig_Neck");
-	//neckLocalMatrix.rotate(180.0f * sin(Game::instance->time) * DEG2RAD, Vector3(0, 1, 0));
-
-	//Matrix44& headLocalMatrix = resultSk.getBoneMatrix("mixamorig_Head");
-	//headLocalMatrix.scale(2.0f, 2.0f, 2.0f);
-
-	//Matrix44& RightForeArmLocalMatrix = resultSk.getBoneMatrix("mixamorig_RightForeArm");
-	//RightForeArmLocalMatrix.scale(0.0f, 0.0f, 0.0f);
-
-	//upload uniforms
 	mesh->shader->setUniform("u_color", Vector4(1, 1, 1, 1));
 	mesh->shader->setUniform("u_viewprojection", game->camera->viewprojection_matrix);
 	if (mesh->texture != NULL)
@@ -144,7 +132,14 @@ void EntityEnemy::render() {
 	visualModel = model;
 
 	visualModel.rotate(180 * DEG2RAD, Vector3(0, 1, 0));
-	visualModel.scale(0.015f, 0.015f, 0.015f);
+	if (type == ENEMY_ID::BOSS)
+	{
+		visualModel.scale(0.03f, 0.03f, 0.03f);
+	}
+	else {
+		visualModel.scale(0.015f, 0.015f, 0.015f);
+	}
+
 
 	mesh->model = model;
 

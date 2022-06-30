@@ -45,6 +45,9 @@ void World::loadWorld() {
 	skyTex = Texture::Get("data/sky.jpg");
 	sky = new EntityMesh(GL_TRIANGLES, skyModel, skyMesh, skyTex, shader);
 
+	bow = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/bow.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"));
+	sword = new EntityMesh(GL_TRIANGLES, Matrix44(), Mesh::Get("data/sword.obj"), Texture::Get("data/color-atlas.png"), Shader::Get("data/shaders/skinning.vs", "data/shaders/texture.fs"));
+
 	exit_open = Mesh::Get("data/exit_open.obj");
 
 	Matrix44 groundModel;
@@ -69,11 +72,9 @@ void World::loadWorld() {
 	viewDatas[5].texture = Texture::Get("data/color-atlas.png");
 
 	level_info.level = 0;
+	level_info.level = 0;
 
 	gamemap = new GameMap();
-	//gamemap = loadGameMap("data/lvl1.map");
-	//importMap(static_entities);
-	//unifyCollidableEntities();
 
 	level_info.tag = ACTION_ID::NO_ACTION;
 	level_info.space_pressed = 2.0f;
@@ -83,22 +84,22 @@ void World::loadWorld() {
 		std::cout << "Error init BASS" << std::endl;
 	}
 
-	audio.LoadSample("data/background.wav");
-	audio.LoadSample("data/background1.wav");
-	audio.LoadSample("data/background1.wav");
-	audio.LoadSample("data/sword.wav");
-	audio.LoadSample("data/arrow.wav");
-	audio.LoadSample("data/hit.wav");
-	audio.LoadSample("data/hit_enemy.mp3");
-	audio.LoadSample("data/hit_enemy.mp3");
-	audio.LoadSample("data/dead_enemy.mp3");
-	audio.LoadSample("data/jump.wav");
-	audio.LoadSample("data/touch_ground.wav");
-	audio.LoadSample("data/chest.wav");
+	audio.LoadSample("data/sounds/intro.wav");
+	audio.LoadSample("data/sounds/lvl1.wav");
+	audio.LoadSample("data/sounds/lvl2.wav");
+	audio.LoadSample("data/sounds/lvl3.mp3");
+	audio.LoadSample("data/sounds/lvl4.wav");
+	audio.LoadSample("data/sounds/lvl5.wav");
+	audio.LoadSample("data/sounds/sword.wav");
+	audio.LoadSample("data/sounds/arrow.wav");
+	audio.LoadSample("data/sounds/hit.wav");
+	audio.LoadSample("data/sounds/hit_enemy.mp3");
+	audio.LoadSample("data/sounds/dead_enemy.mp3");
+	audio.LoadSample("data/sounds/dead_enemy.mp3");
+	audio.LoadSample("data/sounds/jump.wav");
+	audio.LoadSample("data/sounds/touch_ground.wav");
+	audio.LoadSample("data/sounds/chest.wav");
 
-
-	//std::cout << "static_entities: " << static_entities.size() << std::endl;
-	//camera_inverse = false;
 }
 
 Vector3 CellToWorld(Vector2 cellPos, int cellsize) { //esquina superior izquierda
@@ -214,9 +215,9 @@ void World::importMap(std::vector<EntityMesh*>& entities) {
 					entities.push_back(entity);
 				}
 				else if (index == 14) {
-					prop = viewDatas[4];
+					prop = viewDatas[3];
 					//cellModel.rotate(90 * DEG2RAD, Vector3(1, 0, 0));
-					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::ARCHER);
+					EntityEnemy* enenmy = new EntityEnemy(cellModel, prop.mesh, prop.texture, level_info.level, ENEMY_ID::BOSS);
 					enenmy->pos = CellToWorldCenter(Vector2(i, j), tileWidth);
 					enenmy->spawnPos = enenmy->pos;
 					enemies.push_back(enenmy);
@@ -283,26 +284,13 @@ GameMap* loadGameMap(const char* filename)
 }
 
 void World::loadLevel() {
+	audio.ResetAudio();
 	if (level_info.tag == ACTION_ID::WIN) {
 		level_info.level += 1;
 		if (level_info.level == 6) {
 			currentStage = STAGE_ID::END;
 			return;
 		}
-		
-	}
-
-	if (level_info.level == 1) {
-		audio.PlayGameSound(0);
-		player->currentItem = ITEM_ID::NONE;
-
-	}
-	else if (level_info.level == 0)
-	{
-		player->currentItem = ITEM_ID::SWORD;
-	}
-	else {
-
 	}
 
 	static_entities.clear();
@@ -322,16 +310,42 @@ void World::loadLevel() {
 	
 	level_info.tag == ACTION_ID::NO_ACTION;
 	
-	if (level_info.level == 1 ) {
-		player->hearts = 3;
-		player->strength = 1;
-	}
-	else if (level_info.level == 0) {
+	if (level_info.level == 0)
+	{
+		audio.PlayGameSound(AUDIO_ID::BACKGROUND_SOUND1);
+		player->currentItem = ITEM_ID::SWORD;
 		player->hearts = 8;
 		player->strength = 1;
 	}
-	else {
-		if (level_info.last_player_hearts < 3){
+	else if (level_info.level == 1) {
+		audio.PlayGameSound(AUDIO_ID::BACKGROUND_SOUND1);
+		player->currentItem = ITEM_ID::NONE;
+		player->hearts = 3;
+		player->strength = 1;
+	}
+	else if (level_info.level == 2) {
+		audio.PlayGameSound(AUDIO_ID::BACKGROUND_SOUND2);
+		player->currentItem = ITEM_ID::SWORD;
+		
+	}
+	else if (level_info.level == 3) {
+		audio.PlayGameSound(AUDIO_ID::BACKGROUND_SOUND3);
+		player->currentItem = ITEM_ID::SWORD;
+
+	}
+	else if (level_info.level == 4) {
+		audio.PlayGameSound(AUDIO_ID::BACKGROUND_SOUND4);
+		player->currentItem = ITEM_ID::SWORD;
+
+	}
+	else if (level_info.level == 5) {
+		audio.PlayGameSound(AUDIO_ID::BACKGROUND_SOUND5);
+		player->currentItem = ITEM_ID::SWORD;
+
+	}
+	if (level_info.level > 1)
+	{
+		if (level_info.last_player_hearts < 3) {
 			player->hearts = 3;
 		}
 		else {
@@ -340,6 +354,7 @@ void World::loadLevel() {
 		player->strength = level_info.last_player_strength;
 		player->runSpeed = level_info.last_player_run_speed;
 	}
+
 	player->hitTimer = 0.0f;
 	player->jaw = 0;
 
