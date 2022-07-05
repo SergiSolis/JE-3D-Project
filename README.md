@@ -25,7 +25,5 @@ email: bruno.sanchez01@estudiant.upf.edu
 - MENU: ESC
 - TITLE / MENU CONTROLLER: ARROWS (⬆ / ⬇), SPACE
 
-***YOUTUBE LINK***
-
 ### [YOUTUBE LINK](https://youtu.be/V0yNDMxz1fc)
-[![YOUTUBE LINK](https://github.com/SergiSolis/Undead-Redemption_JE-3D-Project/blob/main/title.png?raw=true)](https://youtu.be/V0yNDMxz1fc)
+[![YOUTUBE LINK](https://github.com/SergiSolis/Undead-Redemption_JE-3D-Project/blob/main/final.png?raw=true)](https://youtu.be/V0yNDMxz1fc)
