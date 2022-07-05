@@ -367,12 +367,10 @@ void playStage::render()
 
 void playStage::update(float seconds_elapsed)
 {
-	//std::cout << "PLAY STAGE" << std::endl;
 	Game *game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
 	std::vector<EntityEnemy*>& s_enemies = Game::instance->world.enemies;
-	std::cout << "Enemies:" << s_enemies.size() << std::endl;
 	SDL_ShowCursor(false);
 
 	if (world.currentStage == STAGE_ID::TUTORIAL && s_enemies.size() == 0)
@@ -420,7 +418,6 @@ void playStage::update(float seconds_elapsed)
 		}
 		if (s_enemies[i]->currentAnim == PLAYER_ANIM_ID::PLAYER_DEAD)
 		{
-			std::cout << "Anim duration: " << s_enemies[i]->animTimer << std::endl;
 		}
 	}
 
@@ -787,7 +784,6 @@ void editorStage::render()
 
 void editorStage::update(float seconds_elapsed)
 {
-	//std::cout << "EDITOR STAGE" << std::endl;
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
@@ -890,7 +886,6 @@ void menuStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	std::cout << "MENU OPTION:" << (int)world.menuOption << std::endl;
 	if (Input::wasKeyPressed(SDL_SCANCODE_UP)) {
 		world.menuOption = static_cast<MENU_OPTIONS>((world.menuOption - 1) % (MENU_OPTIONS::EXIT + 1));
 	}
@@ -965,8 +960,7 @@ void endStage::update(float seconds_elapsed)
 	Game* game = Game::instance;
 	World& world = game->world;
 	EntityPlayer* player = world.player;
-	//std::cout << "END STAGE" << std::endl;
-	if (Input::isKeyPressed(SDL_SCANCODE_SPACE) || Input::isKeyPressed(SDL_SCANCODE_K)) {
+	if (Input::wasKeyPressed(SDL_SCANCODE_SPACE) || Input::wasKeyPressed(SDL_SCANCODE_K)) {
 		game->must_exit = true;
 	}
 	if (Input::wasKeyPressed(SDL_SCANCODE_ESCAPE))
